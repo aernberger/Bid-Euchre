@@ -1,9 +1,9 @@
 //import bid
 
 class Player{
-    id
-    name
-    hand
+    id;
+    name;
+    hand;
 
     controller(id, name){
         this.id = id;
@@ -28,7 +28,7 @@ class Player{
     }
 
     //implement when you make bid class
-    
+
     // makeBid(bidValue, contractType){
     //     return new Bid(this.id, bidValue, contractType)
     // }

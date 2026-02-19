@@ -2,8 +2,8 @@ import Face from "./properties/face.js"
 import Suit from "./properties/suit.js"
 
 class Card {
-    #suit
-    #face
+    #suit;
+    #face;
     constructor(suit, face) {
         this.suit = suit;
         this.face = face;

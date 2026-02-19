@@ -3,7 +3,7 @@ import Face from "./properties/face.js"
 import Suit from "./properties/suit.js"
 
 class Deck{
-    cards
+    cards;
 
     
     constructor(){
