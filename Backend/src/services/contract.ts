@@ -5,21 +5,21 @@ import Card from "../models/card.js";
 import { Bid } from "./bid.js";
 
 const HIGH_RANK_VALUES: Record<FaceType, number> = {
-    [FaceType.ACE]: 6,
-    [FaceType.KING]: 5,
-    [FaceType.QUEEN]: 4,
-    [FaceType.JACK]: 3,
-    [FaceType.TEN]: 2,
-    [FaceType.NINE]: 1,
+    [Face.ACE]: 6,
+    [Face.KING]: 5,
+    [Face.QUEEN]: 4,
+    [Face.JACK]: 3,
+    [Face.TEN]: 2,
+    [Face.NINE]: 1,
 };
 
 const LOW_RANK_VALUES: Record<FaceType, number> = {
-    [FaceType.NINE]: 6,
-    [FaceType.TEN]: 5,
-    [FaceType.JACK]: 4,
-    [FaceType.QUEEN]: 3,
-    [FaceType.KING]: 2,
-    [FaceType.ACE]: 1,
+    [Face.NINE]: 6,
+    [Face.TEN]: 5,
+    [Face.JACK]: 4,
+    [Face.QUEEN]: 3,
+    [Face.KING]: 2,
+    [Face.ACE]: 1,
 };
 
 export class Contract {
@@ -74,28 +74,33 @@ export class Contract {
     }
 
     const isSuitedJack =
-        card.face === FaceType.JACK &&
-        card.suit.type === this.trumpSuit
+        card.face === Face.JACK &&
+        card.suit === this.trumpSuit
 
     const isNonSuitedJack =
-        card.face.type === FaceType.JACK &&
-        card.suit.type !== this.trumpSuit &&
-        this.isSameColorSuit(card.suit.type, this.trumpSuit)
+        card.face === Face.JACK &&
+        card.suit !== this.trumpSuit &&
+        this.isSameColorSuit(card.suit, this.trumpSuit)
 
     if (isSuitedJack) return 100
 
     if (isNonSuitedJack) return 99
-    
-    if (card.suit.type === this.trumpSuit) {
-        return 80 + HIGH_RANK_VALUES[card.face.type]
+
+    if (card.suit === this.trumpSuit) {
+        return 80 + HIGH_RANK_VALUES[card.face]
     }
 
-    // 4️⃣ Following suit (non-trump)
-    if (card.suit.type === ledSuit) {
-        return 40 + HIGH_RANK_VALUES[card.face.type]
+    if (card.suit === ledSuit) {
+        return 40 + HIGH_RANK_VALUES[card.face]
     }
 
-    // 5️⃣ Off suit junk
     return 0
+}
 
+    compareCards(cardA: Card, cardB: Card, ledSuit: SuitType): number {
+        const rankA = this.getCardRank(cardA, ledSuit);
+        const rankB = this.getCardRank(cardB, ledSuit);
+        return rankA - rankB;
+    }
 
+}
