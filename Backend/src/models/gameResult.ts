@@ -1,11 +1,11 @@
-import type { ContractTypeValue } from "../services/properties/contractType.js";
+import type { ContractType } from "../services/enums/contractType.js";
 
 export interface GameResultData {
   winningTeamId: string | number;
   teamScores: Record<string | number, number>;
   playerTricks: Record<string | number, number>;
   playerBids: Record<string | number, unknown>;
-  contractType: ContractTypeValue;
+  contractType: ContractType;
   bidWinnerId: string | number;
   contractSuccessful: boolean;
 }
@@ -15,7 +15,7 @@ export default class GameResult {
   teamScores: Record<string | number, number>;
   playerTricks: Record<string | number, number>;
   playerBids: Record<string | number, unknown>;
-  contractType: ContractTypeValue;
+  contractType: ContractType;
   bidWinnerId: string | number;
   contractSuccessful: boolean;
 
