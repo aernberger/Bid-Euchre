@@ -6,7 +6,7 @@ import { Play } from 'lucide-react';
 export default function App() {
   return (
     <div>
-      <PlayingCard suit="hearts" value="A" />
+      <PlayingCard suit="diamonds" value="Q" />
     </div>
   );
 } 

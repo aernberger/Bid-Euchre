@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, Diamond, Club, Spade, Divide} from "lucide-react";
+import { Heart, Diamond, Club, Spade, Crown, ChessKing, ChessQueen } from "lucide-react";
 
 type Suit = "hearts" | "spades" | "diamonds" | "clubs";
 
@@ -19,16 +19,26 @@ const suitIcons = {
     spades: Spade,
 }
 
-const suitColors = {
-    hearts: "text-red-500",
-    diamonds: "text-red-500",
-    clubs: "text-gray-900",
-    spades: "text-gray-900"
+const faceIcons = {
+    J: Crown,
+    Q: ChessQueen,
+    K: ChessKing
 }
+
+const suitColors = {
+    hearts: "red",
+    diamonds: "red",
+    clubs: "black",
+    spades: "black"
+}
+
+const face_cards = ["J", "Q", "K"];
 
 export default function PlayingCard({suit, value, disabled, selected, onClick}: PlayingCardProperties) {
     const SuitIcon = suitIcons[suit];
     const color = suitColors[suit];
+    const is_face = face_cards.includes(value);
+    const FaceIcon = is_face ? faceIcons[value] : suitIcons[suit];
 
     return( 
         <button
@@ -55,7 +65,7 @@ export default function PlayingCard({suit, value, disabled, selected, onClick}: 
             </div>
 
             <div style={{color: color, marginTop: "16px"}}>
-                <SuitIcon size={60} />
+                <FaceIcon size={60} />
             </div>
                     
 
