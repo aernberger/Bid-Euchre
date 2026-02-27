@@ -1,4 +1,5 @@
 import React from "react";
+import { useState } from 'react'
 import { Heart, Diamond, Club, Spade, Crown, ChessKing, ChessQueen } from "lucide-react";
 
 type Suit = "hearts" | "spades" | "diamonds" | "clubs";
@@ -7,7 +8,6 @@ interface PlayingCardProperties {
     suit: Suit;
     value: string;
     disabled?: boolean;
-    selected?: boolean;
     onClick?: () => void;
 
 }
@@ -34,16 +34,19 @@ const suitColors = {
 
 const face_cards = ["J", "Q", "K"];
 
-export default function PlayingCard({suit, value, disabled, selected, onClick}: PlayingCardProperties) {
+export default function PlayingCard({suit, value, disabled, onClick}: PlayingCardProperties) {
     const SuitIcon = suitIcons[suit];
     const color = suitColors[suit];
     const is_face = face_cards.includes(value);
     const FaceIcon = is_face ? faceIcons[value] : suitIcons[suit];
+    const [selected, setSelected] = React.useState(false);
 
     return( 
         <button
             onClick={onClick}
             disabled = {disabled}
+            onMouseEnter={() => setSelected(true)}
+            onMouseLeave={() => setSelected(false)}
             style={{
                 width: "100px",
                 height: "150px",
