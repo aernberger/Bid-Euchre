@@ -11,3 +11,19 @@ interface PlayingCardProperties {
 
 }
 
+const suitIcons = {
+    hearts: Heart,
+    diamonds: Diamond,
+    clubs: Club,
+    spades: Spade,
+}
+
+const suitColors = {
+    hearts: "text-red-500",
+    diamonds: "text-red-500",
+    clubs: "text-gray-900",
+    spades: "text-gray-900"
+}
+
+
+
