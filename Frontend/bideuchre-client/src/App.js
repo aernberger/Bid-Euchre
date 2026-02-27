@@ -1,14 +1,13 @@
-import logo from './logo.svg';
 import './App.css';
+import React from "react";
+import PlayingCard from './components/PlayingCard.tsx';
+import { Play } from 'lucide-react';
 
-function App() {
+export default function App() {
   return (
-    <h1>
-      "Hello World"
-    </h1>
-
-    
+    <div>
+      <PlayingCard suit="hearts" value="A" />
+    </div>
   );
-}
+} 
 
-export default App;
