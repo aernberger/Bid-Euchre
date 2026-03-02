@@ -2,6 +2,7 @@ import Card from "./card.js";
 import Face from "./properties/face.js";
 import Suit from "./properties/suit.js";
 
+
 export default class Deck {
   cards: Card[];
 

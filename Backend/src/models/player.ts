@@ -5,7 +5,7 @@ export default class Player {
   name: string;
   hand: Card[] = [];
 
-  constructor(id: string | number, name: string) {
+  constructor(id: string, name: string) {
     this.id = id;
     this.name = name;
   }
