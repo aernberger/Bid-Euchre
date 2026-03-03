@@ -1,5 +1,5 @@
 import Card from "./card.js"
-import { SuitType } from "./properties/suit.js"
+import { SuitType } from "./enums/suit.js"
 
 export default class Hand {
   private cards: Card[] = []

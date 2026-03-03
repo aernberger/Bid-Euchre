@@ -1,5 +1,5 @@
 import { ContractType } from "./enums/contractType.js";
-import Suit, { SuitType } from "../models/properties/suit.js";
+import Suit, { SuitType } from "../models/enums/suit.js";
 
 export class Bid {
     constructor(
@@ -9,7 +9,7 @@ export class Bid {
         readonly suitType?: SuitType,
         readonly loner: boolean = false
     ) {
-        if (tricks < 1 || tricks > 6) {
+        if (tricks < 0 || tricks > 6) {
             throw new Error("Invalid number of tricks");
         }
 
@@ -44,5 +44,9 @@ export class Bid {
 
     equals(other: Bid): boolean {
         return this.compareTo(other) === 0;
+    }
+
+    isPass(): boolean {
+        return this.tricks === 0;
     }
 }

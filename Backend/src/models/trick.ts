@@ -1,7 +1,7 @@
 import { Contract } from "../services/contract.js";
 import { ContractType } from "../services/enums/contractType.js";
 import Card from "./card.js"
-import  { SuitType } from "./properties/suit.js";
+import  { SuitType } from "./enums/suit.js";
 
 interface PlayedCard {
     playerId: string

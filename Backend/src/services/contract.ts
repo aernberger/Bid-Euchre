@@ -1,6 +1,6 @@
 import { ContractType } from "./enums/contractType.js";
-import Suit, { SuitType } from "../models/properties/suit.js";
-import Face, { FaceType } from "../models/properties/face.js";
+import Suit, { SuitType } from "../models/enums/suit.js";
+import Face, { FaceType } from "../models/enums/face.js";
 import Card from "../models/card.js";
 import { Bid } from "./bid.js";
 

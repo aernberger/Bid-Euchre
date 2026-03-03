@@ -1,5 +1,5 @@
-import type { FaceType } from "./properties/face.js";
-import type { SuitType } from "./properties/suit.js";
+import type { FaceType } from "./enums/face.js";
+import type { SuitType } from "./enums/suit.js";
 
 export default class Card {
   suit: SuitType;
