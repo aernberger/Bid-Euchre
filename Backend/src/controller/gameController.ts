@@ -65,14 +65,25 @@ export class GameController {
     };
   }
 
-  // initializeGame() {
-  //   const team1 = new Team(this.players[0], this.players[2], 1);
-  //   const team2 = new Team(this.players[1], this.players[3], 2);
+  initializeGame() {
+    const team1 = new Team(this.players[0], this.players[2], 1);
+    const team2 = new Team(this.players[1], this.players[3], 2);
 
-  //   this.game = new Game(this.players, [team1, team2]);
-
-  //   this.dealerIndex = Math.floor(Math.random() * 4);
-  // }
+    this.game = new Game(this.players, [team1, team2]);
+    this.dealerIndex = Math.floor(Math.random() * 4);
+    this.phase = GamePhase.BIDDING;
+    return {
+      type: "GAME_INITIALIZED",
+      players: this.players.map((player, index) => ({
+        id: player.id,
+        name: player.name,
+        seat: index
+      })),
+      dealerId: this.players[this.dealerIndex].id,
+      currentPlayerId: this.players[this.currentPlayerIndex].id,
+      phase: this.phase,
+    };
+  }
 
   // getSingularBid(playerId: string, tricks: number, contractType: ContractType, suitType?: SuitType, loner: boolean = false){
   //   return new Bid(playerId, tricks, contractType, suitType, loner);
