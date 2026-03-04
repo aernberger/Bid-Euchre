@@ -40,7 +40,7 @@ export class Round {
   
     private createNewTrick(leaderId?: string): Trick {
       const maxPlays = this.contract.loner ? 3 : 4
-      return new Trick(this.contract, maxPlays)
+      return new Trick(this.contract, maxPlays, leaderId)
     }
   
     isComplete(): boolean {

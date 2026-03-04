@@ -13,7 +13,7 @@ export default class Trick{
     leadSuit?: SuitType
     
     constructor(private readonly contract: Contract,
-        private readonly maxPlays: number) {}
+        private readonly maxPlays: number, private readonly leaderId?: string) {}
 
     playCard(playerId: string, card: Card){
         if (this.isComplete()) {
