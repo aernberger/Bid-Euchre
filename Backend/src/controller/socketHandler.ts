@@ -1,6 +1,11 @@
 import { Server, Socket } from "socket.io";
 import { GameController }  from "./gameController.js";
 import Player from "../models/player.js";
+import { Bid } from "../services/bid.js";
+import { Contract } from "../services/contract.js";
+import Trick from "../models/trick.js";
+
+
 
 export default class SocketHandler {
     private wss: Server;
@@ -22,6 +27,7 @@ registerSocketHandlers(socket: Socket) {
     socket.on("disconnect", () => this.disconnect(socket));
     socket.on("MessageEvent", (messageText)=> this.onMessageEvent(messageText));
     socket.on("joinGame", (data) => this.onJoinGame(socket, data));
+    socket.on("placeBid", (data) => this.onPlaceBid(socket, data));
 }
 
 disconnect(socket: Socket) {
@@ -53,7 +59,25 @@ onStartGame(socket: Socket) {
     }
 }
 
+private onPlaceBid(socket: Socket, data: any) {
+    try {
+        const bid = new Bid(
+            socket.id,
+            data.tricks,
+            data.contractType,
+            data.suitType,
+            data.loner
+        );
+        
+        const response = this.controller.placeBid(bid);
 
+        this.wss.emit("gameUpdate", response);
+
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message);
+    }
+
+}
 
 
 
