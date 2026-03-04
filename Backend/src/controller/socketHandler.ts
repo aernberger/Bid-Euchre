@@ -44,4 +44,17 @@ onJoinGame(socket: Socket, data: any) {
     }
 }
 
+onStartGame(socket: Socket) {
+    try {
+        const response = this.controller.initializeGame();
+        this.wss.emit("gameUpdate", response);
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message);
+    }
+}
+
+
+
+
+
 }
