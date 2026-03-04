@@ -85,6 +85,96 @@ export class GameController {
     };
   }
 
+  placeBid(bid: Bid) {
+    if (this.phase !== GamePhase.BIDDING) {
+      throw new Error("Game is not in bidding phase");
+    }
+
+    const currentPlayer = this.players[this.currentPlayerIndex];
+
+    if (currentPlayer.id !==  bid.bidderId) {
+      throw new Error("Not your turn");
+    }
+
+    if(bid.isPass()){
+      this.bids.push(bid);
+      this.advanceTurn();
+      if(this.isBiddingComplete()){
+        return this.endBidding();
+      }
+
+      return{
+        type: "BID_PASSED",
+        nextPlayerID: this.players[this.currentPlayerIndex].id
+      };
+    }
+
+    if (this.highestBid && !bid.beats(this.highestBid)) {
+      throw new Error("Bid must be higher than current highest bid");
+    }
+  
+    this.highestBid = bid;
+    this.bids.push(bid);
+  
+    this.advanceTurn();
+  
+    if (this.isBiddingComplete()) {
+      return this.endBidding();
+    }
+  
+    return {
+      type: "BID_PLACED",
+      highestBid: this.highestBid,
+      nextPlayerId: this.players[this.currentPlayerIndex].id
+    };
+  }
+
+  private isBiddingComplete(): boolean {
+    return this.bids.length >= this.players.length;
+  }
+      
+  private endBidding() {
+    if (!this.highestBid) {
+      this.phase = GamePhase.WAITING;
+      return {
+        type: "REDEAL_REQUIRED"
+      };
+    }
+  
+    const contract = new Contract(this.highestBid);
+  
+    this.game.startNewRound(contract);
+  
+    this.phase = GamePhase.PLAYING;
+
+    
+    if(this.currentPlayerIndex === 2){
+      this.currentPlayerIndex = this.players.findIndex(
+        p => p.id === contract.declarerId
+      )+1;
+    } else {
+      this.currentPlayerIndex = 0;
+    }
+  
+    return {
+      type: "BIDDING_COMPLETE",
+      winningBid: this.highestBid,
+      declarerId: contract.declarerId,
+      phase: this.phase
+    };
+
+
+  }
+
+  private advanceTurn(): void {
+    this.currentPlayerIndex =
+      (this.currentPlayerIndex + 1) % this.players.length;
+  }
+
+
+    
+  }
+
   // getSingularBid(playerId: string, tricks: number, contractType: ContractType, suitType?: SuitType, loner: boolean = false){
   //   return new Bid(playerId, tricks, contractType, suitType, loner);
   // }
@@ -98,7 +188,7 @@ export class GameController {
   // startRound() {
   //   this.phase = GamePhase.BIDDING;
 
-  }
+  
 
 
 
