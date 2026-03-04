@@ -22,7 +22,7 @@ export default function Game() {
         { suit: "clubs" as Suit, value: "7" },
     ];
 
-    const handleBidSubmit = (bid: number) => {
+    const handleBidSubmit = (bid: Bid) => {
         console.log("Bid submitted:", bid);
         setBiddingPhase(false);
         setPlayingPhase(true);
@@ -52,7 +52,7 @@ export default function Game() {
                 playingPhase={playingPhase}
                 hand={cards}
                 onCardClick={handleCardClick}
-                currentHighBid={2}
+                currentHighBid={{ type: "Suited", number: 3 }}
                 onBidSubmit={handleBidSubmit}
                 currentTrick={fakeTrick}
                 trumpSuit="hearts"
