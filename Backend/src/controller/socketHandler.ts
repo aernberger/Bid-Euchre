@@ -1,14 +1,19 @@
 import { Server, Socket } from "socket.io";
+import { GameController }  from "./gameController.js";
+import Player from "../models/player.js";
 
 export default class SocketHandler {
     private wss: Server;
+    private controller: GameController;
 
     constructor(wss: Server) {
         this.wss = wss;
+        this.controller = new GameController();
         this.wss.on("connection", (socket) => {
             console.log("Socket connected");
             this.registerSocketHandlers(socket);
         });
+        
     }
 
 
@@ -16,14 +21,27 @@ export default class SocketHandler {
 registerSocketHandlers(socket: Socket) {
     socket.on("disconnect", () => this.disconnect(socket));
     socket.on("MessageEvent", (messageText)=> this.onMessageEvent(messageText));
+    socket.on("joinGame", (data) => this.onJoinGame(socket, data));
 }
 
 disconnect(socket: Socket) {
     console.log("Socket disconnected");
+    const response = this.controller.removePlayer(socket.id);
+    this.wss.emit("gameUpdate", response);
 }
 
 onMessageEvent(messageText: string) {
     console.log("Message event received: ", messageText);
+}
+
+onJoinGame(socket: Socket, data: any) {
+    try {
+        const player = new Player(socket.id, data.name);
+        const response = this.controller.addPlayer(player);
+        this.wss.emit("gameUpdate", response);
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message)
+    }
 }
 
 }
