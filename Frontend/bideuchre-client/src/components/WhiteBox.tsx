@@ -6,7 +6,7 @@ interface WhiteBoxProperties {
     children?: React.ReactNode;
 }
 
-const WhiteBox: React.FC<WhiteBoxProperties> = ({width = "800px", height = "350px", children}) => {
+const WhiteBox: React.FC<WhiteBoxProperties> = ({width = "clamp(533px, 60vw, 1200px)", height = "clamp(233px, 35vh, 525px)", children}) => {
     return (
         <div style={{
             width,
