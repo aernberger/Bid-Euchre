@@ -2,6 +2,8 @@ import React from 'react';
 import { useState } from 'react';
 import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
+import PlayingBox from '../components/PlayingBox.tsx';
+import GameBox from "../components/GameBox.tsx";
 
 export default function Game() {
     const [cards, setCards] = React.useState([
@@ -12,6 +14,25 @@ export default function Game() {
         {suit: "diamonds", value: "Q"},
         {suit: "diamonds", value: "Q"},
     ]);
+
+    const [biddingPhase, setBiddingPhase] = React.useState(true);
+    const [playingPhase, setPlayingPhase] = React.useState(false);
+
+    const fakeTrick = [
+        { suit: "hearts" as Suit, value: "3" },
+        { suit: "clubs" as Suit, value: "7" },
+    ];
+
+    const handleBidSubmit = (bid: Bid) => {
+        console.log("Bid submitted:", bid);
+        setBiddingPhase(false);
+        setPlayingPhase(true);
+    };
+
+    const handleCardClick = (index: number) => {
+        console.log("Card clicked:", index);
+    };
+
 
     const removeCard = (index: number) => {
         setCards(cards.filter((_, i) => i !== index));
@@ -27,6 +48,28 @@ export default function Game() {
             justifyContent: "center",     // center vertically
             padding: "16px",
     }}>
+        {/* TOP AREA */}
+    {biddingPhase ? (
+            <PlayingBox
+                biddingPhase={true}
+                playingPhase={false}
+                currentHighBid={{ type: "Suited", number: 3 }}
+                onBidSubmit={handleBidSubmit}
+                currentTrick={fakeTrick}
+                trumpSuit="hearts"
+                isPlayerTurn={true}
+            />
+            ) : (
+            <GameBox
+                trumpSuit="hearts"
+                currentTrick={fakeTrick}
+                bid={{ type: "Suited", number: 3 }}
+                topCount={6}
+                leftCount={6}
+                rightCount={6}
+            />
+    )}
+           
             <WhiteBox>
                 <div style={{display: "flex", justifyContent: "space-between", width: "100%"}}>
                     <span>Player 1</span>
