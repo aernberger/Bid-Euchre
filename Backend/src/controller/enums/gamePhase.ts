@@ -1,0 +1,7 @@
+export enum GamePhase {
+  WAITING = "WAITING",
+  BIDDING = "BIDDING",
+  PLAYING = "PLAYING",
+  SCORING = "SCORING",
+  GAME_OVER = "GAME_OVER"
+}
