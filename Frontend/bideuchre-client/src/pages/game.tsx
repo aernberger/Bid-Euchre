@@ -4,6 +4,7 @@ import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
 import PlayingBox from '../components/PlayingBox.tsx';
 import GameBox from "../components/GameBox.tsx";
+import { placeBid } from '../sockets/socket.ts';
 
 export default function Game() {
     const [cards, setCards] = React.useState([
@@ -15,6 +16,14 @@ export default function Game() {
         {suit: "diamonds", value: "Q"},
     ]);
 
+    type BidType = "Low" | "Suited" | "High";
+    type Suit = "hearts" | "diamonds" | "clubs" | "spades";
+
+    interface Bid {
+        type: BidType;
+        number: number;
+    }
+
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [playingPhase, setPlayingPhase] = React.useState(false);
 
@@ -24,10 +33,79 @@ export default function Game() {
     ];
 
     const handleBidSubmit = (bid: Bid) => {
-        console.log("Bid submitted:", bid);
-        setBiddingPhase(false);
-        setPlayingPhase(true);
+
+    console.log("Frontend: Bid button clicked", bid);
+
+    const contractTypeMap: Record<BidType, number> = {
+        Low: 0,
+        Suited: 1,
+        High: 2
     };
+
+    // PASS
+    if (bid.number === 0) {
+        console.log("Frontend: Player passed");
+
+        placeBid({
+            tricks: 0,
+            contractType: 0
+        });
+
+        return;
+    }
+
+    const data = {
+        tricks: bid.number,
+        contractType: contractTypeMap[bid.type],
+        loner: false
+    };
+
+    console.log("Frontend: Sending bid to socket", data);
+
+    placeBid(data);
+};
+
+    // const handleBidSubmit = (bid: Bid) => {
+    //     // console.log("Bid submitted:", bid);
+    //     // setBiddingPhase(false);
+    //     // setPlayingPhase(true);
+    // //     if (bid.number === 0) {
+    // //     placeBid({
+    // //         tricks: 0,
+    // //         contractType: 0
+    // //     });
+    // //     return;
+    // // }
+
+    // // const contractTypeMap = {
+    // //     Low: 0,
+    // //     Suited: 1,
+    // //     High: 2
+    // // };
+
+    // // placeBid({
+    // //     tricks: bid.number,
+    // //     contractType: contractTypeMap[bid.type],
+    // //     loner: false
+    // console.log("Frontend: Bid button clicked", bid);
+
+    //     const contractTypeMap: Record<string, number> = {
+    //         Low: 0,
+    //         Suited: 1,
+    //         High: 2
+    //     };
+
+    //     if (bid.number === 0) {
+    //         console.log("Frontend: Player passed");
+
+    //         placeBid({
+    //             tricks: 0,
+    //             contractType: 0
+    //         });
+
+    //         return;
+    //     }
+    // };
 
     const handleCardClick = (index: number) => {
         console.log("Card clicked:", index);

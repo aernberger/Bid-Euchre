@@ -28,3 +28,16 @@ export function placeBid(data:{
     console.log("Sending bid:", data);
     socket.emit("placeBid", data);
 }
+
+export function registerGameListeners(setGameState: any) {
+    const socket = getSocket();
+
+    socket.on("gameUpdate", (state) => {
+        console.log("Game update:", state);
+        setGameState(state);
+    });
+
+    socket.on("errorMessage", (msg) => {
+        alert(msg);
+    });
+}
