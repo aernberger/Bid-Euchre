@@ -17,3 +17,14 @@ export function getSocket(){
     if(!socket) throw new Error("Socket not connected");
     return socket;
 }
+
+export function placeBid(data:{
+    tricks: number;
+    contractType: number;
+    suitType?: string;
+    loner?: boolean;
+}) {
+    const socket = getSocket();
+    console.log("Sending bid:", data);
+    socket.emit("placeBid", data);
+}
