@@ -2,6 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import PlayingCard from "./PlayingCard.tsx";
 import WhiteBox from "./WhiteBox.tsx";
+import { placeBid } from '../sockets/socket.js';
 
 type BidType = "Low" | "Suited" | "High";
 
@@ -55,11 +56,15 @@ export default function PlayingBox({
         <WhiteBox height={"clamp(333px, 45vh, 625px)"}>
             {biddingPhase && (
                 <div>
+                    <h3>
+                        {isPlayerTurn ? "Your turn to bid" : "Waiting for your turn to bid"}
+                    </h3>
                     <h3>Current Highest Bid: {currentHighBid ? `${currentHighBid.type} ${currentHighBid.number}` : "None"}</h3>
                     <div style={{ display: "flex", gap: "8px" }}>
                         {["Low", "Suited", "High"].map((bid) => (
                             <button
                                 key={bid}
+                                disabled={!isPlayerTurn}
                                 onClick={() => setSelectedType(bid as BidType)}
                                 style={{ fontWeight: selectedType === bid ? "bold" : "normal" }}
                             >
@@ -69,14 +74,13 @@ export default function PlayingBox({
                     </div>
                     <div style={{ display: "flex", gap: "8px" }}>
                         {[1, 2, 3, 4, 5, 6].map((num) => {
-                            // A number is invalid if no type could make it a valid bid
                             const anyTypeValid = (["Low", "Suited", "High"] as BidType[]).some(
                                 (t) => isBidValid(t, num, currentHighBid)
                             );
                             return (
                                 <button
                                     key={num}
-                                    disabled={!anyTypeValid}
+                                    disabled={!isPlayerTurn || !anyTypeValid}
                                     onClick={() => setSelectedNumber(num)}
                                     style={{ fontWeight: selectedNumber === num ? "bold" : "normal" }}
                                 >
@@ -87,7 +91,7 @@ export default function PlayingBox({
                     </div>
                     <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                         <button
-                            disabled={!canConfirm}
+                            disabled={!isPlayerTurn || !canConfirm}
                             onClick={() => {
                                 if (selectedType && selectedNumber) {
                                     onBidSubmit({ type: selectedType, number: selectedNumber });
@@ -96,7 +100,10 @@ export default function PlayingBox({
                         >
                             Confirm Bid
                         </button>
-                        <button onClick={() => onBidSubmit({ type: "Low", number: 0 })}>
+                        <button
+                            disabled={!isPlayerTurn}
+                            onClick={() => onBidSubmit({ type: "Low", number: 0 })}
+                        >
                             Pass
                         </button>
                     </div>

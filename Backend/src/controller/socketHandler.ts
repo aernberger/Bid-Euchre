@@ -31,7 +31,8 @@ registerSocketHandlers(socket: Socket) {
 disconnect(socket: Socket) {
     console.log("Socket disconnected");
     const response = this.controller.removePlayer(socket.id);
-    this.wss.emit("gameUpdate", response);
+    const fullState = { ...this.controller.getPublicState(), ...response };
+    this.wss.emit("gameUpdate", fullState);
 }
 
 onMessageEvent(messageText: string) {
@@ -42,16 +43,18 @@ onJoinGame(socket: Socket, data: any) {
     try {
         const player = new Player(socket.id, data?.name || "Player");
         const response = this.controller.addPlayer(player);
-        this.wss.emit("gameUpdate", response);
+        const fullState = { ...this.controller.getPublicState(), ...response };
+        this.wss.emit("gameUpdate", fullState);
     } catch (error: any) {
-        socket.emit("errorMessage", error.message)
+        socket.emit("errorMessage", error.message);
     }
 }
 
 onStartGame(socket: Socket) {
     try {
         const response = this.controller.initializeGame();
-        this.wss.emit("gameUpdate", response);
+        const fullState = { ...this.controller.getPublicState(), ...response };
+        this.wss.emit("gameUpdate", fullState);
     } catch (error: any) {
         socket.emit("errorMessage", error.message);
     }
@@ -68,7 +71,8 @@ private onPlaceBid(socket: Socket, data: any) {
         );
 
         const response = this.controller.placeBid(bid);
-        this.wss.emit("gameUpdate", response);
+        const fullState = { ...this.controller.getPublicState(), ...response };
+        this.wss.emit("gameUpdate", fullState);
     } catch (error: any) {
         socket.emit("errorMessage", error.message);
     }

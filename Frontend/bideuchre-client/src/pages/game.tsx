@@ -29,9 +29,10 @@ export default function Game() {
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [playingPhase, setPlayingPhase] = React.useState(false);
     const [gameState, setGameState] = React.useState<any>(null);
+    const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
 
     useEffect(() => {
-        connectSocket("dev");
+        connectSocket("dev", undefined, (socketId) => setMyPlayerId(socketId));
         registerGameListeners((state: any) => {
             setGameState(state);
             if (state?.phase === "PLAYING") {
@@ -40,6 +41,13 @@ export default function Game() {
             }
         });
     }, []);
+
+    const currentPlayerId =
+        gameState?.currentPlayerId ?? gameState?.nextPlayerId ?? null;
+    const isPlayerTurn =
+        !!myPlayerId &&
+        myPlayerId === currentPlayerId &&
+        gameState?.phase === "BIDDING";
 
     const contractTypeToBidType: Record<number, BidType> = {
         0: "Low",
@@ -180,7 +188,7 @@ export default function Game() {
                 onBidSubmit={handleBidSubmit}
                 currentTrick={fakeTrick}
                 trumpSuit={trumpSuit}
-                isPlayerTurn={true}
+                isPlayerTurn={isPlayerTurn}
             />
             ) : (
             <GameBox

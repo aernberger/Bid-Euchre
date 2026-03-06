@@ -18,10 +18,23 @@ export class GameController {
   private deck: Deck = new Deck();
   private bids: Bid[] = [];
   private highestBid: Bid | null = null;
+  private winningBid: Bid | null = null;
   private currentPlayerIndex: number = 0;
   private dealerIndex: number = 0;
-  
+
   private playerHands: Map<string, Hand> = new Map();
+
+  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
+  getPublicState() {
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    return {
+      phase: this.phase,
+      players: this.players.map((p) => ({ id: p.id, name: p.name })),
+      currentPlayerId: currentPlayer?.id ?? null,
+      highestBid: this.highestBid,
+      winningBid: this.winningBid,
+    };
+  }
 
   addPlayer(player: Player) {
     if (this.phase !== GamePhase.WAITING) {
@@ -103,9 +116,10 @@ export class GameController {
         return this.endBidding();
       }
 
-      return{
+      return {
         type: "BID_PASSED",
-        nextPlayerID: this.players[this.currentPlayerIndex].id
+        nextPlayerId: this.players[this.currentPlayerIndex].id,
+        currentPlayerId: this.players[this.currentPlayerIndex].id,
       };
     }
 
@@ -125,7 +139,8 @@ export class GameController {
     return {
       type: "BID_PLACED",
       highestBid: this.highestBid,
-      nextPlayerId: this.players[this.currentPlayerIndex].id
+      nextPlayerId: this.players[this.currentPlayerIndex].id,
+      currentPlayerId: this.players[this.currentPlayerIndex].id,
     };
   }
 
@@ -137,14 +152,15 @@ export class GameController {
     if (!this.highestBid) {
       this.phase = GamePhase.WAITING;
       return {
-        type: "REDEAL_REQUIRED"
+        type: "REDEAL_REQUIRED",
       };
     }
-  
+
+    this.winningBid = this.highestBid;
     const contract = new Contract(this.highestBid);
-  
+
     this.game.startNewRound(contract);
-  
+
     this.phase = GamePhase.PLAYING;
 
     

@@ -2,7 +2,11 @@ import {io, Socket} from "socket.io-client";
 
 let socket: Socket | null = null;
 
-export function connectSocket(token: string, playerName?: string) {
+export function connectSocket(
+    token: string,
+    playerName?: string,
+    onConnect?: (socketId: string) => void
+) {
     console.log("Connecting socket with token: ", token);
     socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8000", {
         auth: { token },
@@ -12,14 +16,19 @@ export function connectSocket(token: string, playerName?: string) {
 
     socket.on("connect", () => {
         socket?.emit("joinGame", { name: playerName || "Player" });
+        if (socket?.id) onConnect?.(socket.id);
     });
 
     return socket;
 }
 
-export function getSocket(){
-    if(!socket) throw new Error("Socket not connected");
+export function getSocket() {
+    if (!socket) throw new Error("Socket not connected");
     return socket;
+}
+
+export function getMyPlayerId(): string | null {
+    return socket?.id ?? null;
 }
 
 export function placeBid(data:{
