@@ -2,12 +2,16 @@ import {io, Socket} from "socket.io-client";
 
 let socket: Socket | null = null;
 
-export function connectSocket(token:string){
+export function connectSocket(token: string, playerName?: string) {
     console.log("Connecting socket with token: ", token);
-    socket=io("http://localhost:3000", {
+    socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8000", {
         auth: { token },
         reconnection: true,
         reconnectionAttempts: 5,
+    });
+
+    socket.on("connect", () => {
+        socket?.emit("joinGame", { name: playerName || "Player" });
     });
 
     return socket;

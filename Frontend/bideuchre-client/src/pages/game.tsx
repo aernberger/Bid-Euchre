@@ -1,10 +1,12 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
 import PlayingBox from '../components/PlayingBox.tsx';
 import GameBox from "../components/GameBox.tsx";
-import { placeBid } from '../sockets/socket.ts';
+import { placeBid, connectSocket, registerGameListeners } from '../sockets/socket.ts';
+import { Contract } from "../services/contract.js";
+import Trick from "../models/trick.js";
 
 export default function Game() {
     const [cards, setCards] = React.useState([
@@ -26,6 +28,49 @@ export default function Game() {
 
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [playingPhase, setPlayingPhase] = React.useState(false);
+    const [gameState, setGameState] = React.useState<any>(null);
+
+    useEffect(() => {
+        connectSocket("dev");
+        registerGameListeners((state: any) => {
+            setGameState(state);
+            if (state?.phase === "PLAYING") {
+                setBiddingPhase(false);
+                setPlayingPhase(true);
+            }
+        });
+    }, []);
+
+    const contractTypeToBidType: Record<number, BidType> = {
+        0: "Low",
+        1: "Suited",
+        2: "High",
+    };
+
+    const currentHighBid: Bid | null = React.useMemo(() => {
+        const bid = gameState?.highestBid ?? gameState?.winningBid;
+        if (!bid || bid.tricks === 0) return null;
+        return {
+            type: contractTypeToBidType[bid.contractType] ?? "Low",
+            number: bid.tricks,
+        };
+    }, [gameState?.highestBid, gameState?.winningBid]);
+
+    const winningBid = React.useMemo(() => {
+        const bid = gameState?.winningBid;
+        if (!bid || bid.tricks === 0) return null;
+        const suit = bid.suitType?.toLowerCase?.();
+        return {
+            type: (contractTypeToBidType[bid.contractType] ?? "Low") as BidType,
+            number: bid.tricks,
+            suit: suit as Suit | undefined,
+        };
+    }, [gameState?.winningBid]);
+
+    const trumpSuit = React.useMemo(() => {
+        if (!winningBid?.suit) return undefined;
+        return winningBid.suit as Suit;
+    }, [winningBid]);
 
     const fakeTrick = [
         { suit: "hearts" as Suit, value: "3" },
@@ -131,17 +176,17 @@ export default function Game() {
             <PlayingBox
                 biddingPhase={true}
                 playingPhase={false}
-                currentHighBid={{ type: "Suited", number: 3 }}
+                currentHighBid={currentHighBid}
                 onBidSubmit={handleBidSubmit}
                 currentTrick={fakeTrick}
-                trumpSuit="hearts"
+                trumpSuit={trumpSuit}
                 isPlayerTurn={true}
             />
             ) : (
             <GameBox
-                trumpSuit="hearts"
+                trumpSuit={trumpSuit}
                 currentTrick={fakeTrick}
-                bid={{ type: "Suited", number: 3 }}
+                bid={winningBid}
                 topCount={6}
                 leftCount={6}
                 rightCount={6}

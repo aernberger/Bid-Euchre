@@ -2,8 +2,6 @@ import { Server, Socket } from "socket.io";
 import { GameController }  from "./gameController.js";
 import Player from "../models/player.js";
 import { Bid } from "../services/bid.js";
-import { Contract } from "../services/contract.js";
-import Trick from "../models/trick.js";
 
 
 
@@ -42,7 +40,7 @@ onMessageEvent(messageText: string) {
 
 onJoinGame(socket: Socket, data: any) {
     try {
-        const player = new Player(socket.id, data.name);
+        const player = new Player(socket.id, data?.name || "Player");
         const response = this.controller.addPlayer(player);
         this.wss.emit("gameUpdate", response);
     } catch (error: any) {
@@ -68,15 +66,12 @@ private onPlaceBid(socket: Socket, data: any) {
             data.suitType,
             data.loner
         );
-        
+
         const response = this.controller.placeBid(bid);
-
         this.wss.emit("gameUpdate", response);
-
     } catch (error: any) {
         socket.emit("errorMessage", error.message);
     }
-
 }
 
 
