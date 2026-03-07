@@ -71,6 +71,22 @@ export class GameController {
 
     this.game = new Game(this.players, [team1, team2]);
     this.dealerIndex = Math.floor(Math.random() * 4);
+
+    this.deck = new Deck();
+    this.deck.shuffle();
+
+    const CARDS_PER_PLAYER = 6;
+    const hands = this.deck.deal(this.players.length, CARDS_PER_PLAYER);
+
+    this.playerHands.clear();
+    for (let i = 0; i < this.players.length; i++) {
+      const hand = new Hand(hands[i] || []);
+      this.playerHands.set(this.players[i].id, hand);
+    }
+
+    // first to act is player left of dealer
+    this.currentPlayerIndex = (this.dealerIndex + 1) % this.players.length;
+
     this.phase = GamePhase.BIDDING;
     return {
       type: "GAME_INITIALIZED",
