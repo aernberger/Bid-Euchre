@@ -2,6 +2,9 @@ import { Server, Socket } from "socket.io";
 import { GameController }  from "./gameController.js";
 import Player from "../models/player.js";
 import { Bid } from "../services/bid.js";
+import { Contract } from "../services/contract.js";
+import Trick from "../models/trick.js";
+import Card from "../models/card.js";
 
 
 
@@ -78,6 +81,16 @@ private onPlaceBid(socket: Socket, data: any) {
     }
 }
 
-
-
+private onPlayCard(socket: Socket, data: any) {
+    try {
+        const card = new Card(
+            data.suit,
+            data.face
+        );
+        const response = this.controller.playCard(socket.id, card);
+        this.wss.emit("gameUpdate", response);
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message);
+    }
+}
 }
