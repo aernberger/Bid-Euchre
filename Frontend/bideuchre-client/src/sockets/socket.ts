@@ -8,6 +8,10 @@ export function connectSocket(
     onConnect?: (socketId: string) => void
 ) {
     console.log("Connecting socket with token: ", token);
+    if (socket) {
+        console.log("Socket already connected");
+        return;
+    }
     socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8000", {
         auth: { token },
         reconnection: true,
