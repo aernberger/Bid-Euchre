@@ -161,21 +161,29 @@ export class GameController {
       };
     }
   
-     this.contract = new Contract(this.highestBid);
+    this.contract = new Contract(this.highestBid);
   
     this.game.startNewRound(this.contract);
+
+    this.playedCards = [];
+    this.highestCard = null;
+    this.ledSuit = null;
   
     this.phase = GamePhase.PLAYING;
 
     
-    if(this.currentPlayerIndex === 2){
-      this.currentPlayerIndex = this.players.findIndex(
-        p => p.id === this.contract.declarerId
-      )+1;
-    } else {
+    const declarerIndex = this.players.findIndex(
+      p => p.id === this.contract!.declarerId
+    );
+
+    if (declarerIndex === -1) {
       this.currentPlayerIndex = 0;
+    } else {
+      // if declarer is in the last seat, wrap to 0, otherwise +1
+      this.currentPlayerIndex =
+        declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
     }
-  
+
     return {
       type: "BIDDING_COMPLETE",
       winningBid: this.highestBid,
@@ -192,10 +200,23 @@ export class GameController {
   }
 
 
-  private playCard(card: Card){
-    const currentPlayer = this.players[this.currentPlayerIndex];
-    currentPlayer.playCard(card);
+public playCard(playerId: string, card: Card){
+    if (this.phase !== GamePhase.PLAYING) {
+      throw new Error("Game is not in playing phase");
+    }
 
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    if (!currentPlayer) {
+      throw new Error("No current player");
+    }
+
+    if (currentPlayer.id !== playerId) {
+      throw new Error("Not your turn");
+    }
+
+    currentPlayer.playCard(card);
+  
+    this.playerHands.set(currentPlayer.id, new Hand([...currentPlayer.hand]));
     this.playedCards.push(card);
 
     if(this.playedCards.length == 1){
@@ -203,23 +224,34 @@ export class GameController {
       this.highestCard = card;
     }
 
+    if (!this.contract) {
+      throw new Error("No active contract");
+    }
 
 
-    if (this.highestCard && this.contract.compareCards(card, this.highestCard, this.ledSuit) > 0) {
+    const led = this.ledSuit as SuitType;
+    if (this.highestCard && this.contract.compareCards(card, this.highestCard, led) > 0) {
         this.highestCard = card;
     }
+
+    const playedBy = currentPlayer.id;
   
   
     this.advanceTurn();
   
     if (this.isTrickComplete()) {
-      return this.endTrick();
+      const endResult: any = this.endTrick();
+      if (endResult && typeof endResult === "object") {
+        endResult.playedBy = playedBy;
+      }
+      return endResult;
     }
   
     return {
       type: "Card_Played",
       highest: this.highestCard,
-      nextPlayerId: this.players[this.currentPlayerIndex].id
+      nextPlayerId: this.players[this.currentPlayerIndex].id,
+      playedBy: playedBy
     };
   }
 
@@ -234,8 +266,6 @@ export class GameController {
         type: "REDEAL_REQUIRED"
       };
   }
-
-
   }
 
 
