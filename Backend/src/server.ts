@@ -4,6 +4,7 @@ import gameRoutes from "./routes/gameRoutes.js";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import http from "http";
+import SocketHandler from "./controller/socketHandler.js";
 dotenv.config();
 
 const PORT_NUMBER = process.env.PORT || 8000;
@@ -28,10 +29,14 @@ const httpServer = http.createServer(app);
 
 const wss = new Server(httpServer, 
   {cors: {
-    origin: process.env.CLIENT_ORIGIN,
+    origin: process.env.NODE_ENV === "production" 
+      ? (process.env.CLIENT_ORIGIN ? [process.env.CLIENT_ORIGIN] : false)
+      : true,  // allow any origin in dev (reflects request origin)
     methods: ["GET", "POST"],
   },}
-); 
+);
+
+new SocketHandler(wss);
 
 httpServer.listen(PORT_NUMBER, () => {
   console.log(`Server running on port ${PORT_NUMBER}`);
