@@ -20,6 +20,10 @@ export class GameController {
   private highestBid: Bid | null = null;
   private currentPlayerIndex: number = 0;
   private dealerIndex: number = 0;
+  private playedCards: Card[] = [];
+  private highestCard: Card | null = null;
+  private contract: Contract | null = null;
+  private ledSuit: SuitType | null = null;
   
   private playerHands: Map<string, Hand> = new Map();
 
@@ -157,16 +161,16 @@ export class GameController {
       };
     }
   
-    const contract = new Contract(this.highestBid);
+     this.contract = new Contract(this.highestBid);
   
-    this.game.startNewRound(contract);
+    this.game.startNewRound(this.contract);
   
     this.phase = GamePhase.PLAYING;
 
     
     if(this.currentPlayerIndex === 2){
       this.currentPlayerIndex = this.players.findIndex(
-        p => p.id === contract.declarerId
+        p => p.id === this.contract.declarerId
       )+1;
     } else {
       this.currentPlayerIndex = 0;
@@ -175,7 +179,7 @@ export class GameController {
     return {
       type: "BIDDING_COMPLETE",
       winningBid: this.highestBid,
-      declarerId: contract.declarerId,
+      declarerId: this.contract.declarerId,
       phase: this.phase
     };
 
@@ -188,8 +192,57 @@ export class GameController {
   }
 
 
-    
+  private playCard(card: Card){
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    currentPlayer.playCard(card);
+
+    this.playedCards.push(card);
+
+    if(this.playedCards.length == 1){
+      this.ledSuit = card.suit;
+      this.highestCard = card;
+    }
+
+
+
+    if (this.highestCard && this.contract.compareCards(card, this.highestCard, this.ledSuit) > 0) {
+        this.highestCard = card;
+    }
+  
+  
+    this.advanceTurn();
+  
+    if (this.isTrickComplete()) {
+      return this.endTrick();
+    }
+  
+    return {
+      type: "Card_Played",
+      highest: this.highestCard,
+      nextPlayerId: this.players[this.currentPlayerIndex].id
+    };
   }
+
+  private isTrickComplete() : boolean{
+    return this.playedCards.length >= this.players.length;
+  }
+
+  private endTrick(){
+    if (!this.highestCard) {
+      this.phase = GamePhase.BIDDING;
+      return {
+        type: "REDEAL_REQUIRED"
+      };
+  }
+
+
+  }
+
+
+  }
+
+    
+  
 
   // getSingularBid(playerId: string, tricks: number, contractType: ContractType, suitType?: SuitType, loner: boolean = false){
   //   return new Bid(playerId, tricks, contractType, suitType, loner);
