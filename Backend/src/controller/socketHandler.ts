@@ -29,6 +29,7 @@ registerSocketHandlers(socket: Socket) {
     socket.on("MessageEvent", (messageText)=> this.onMessageEvent(messageText));
     socket.on("joinGame", (data) => this.onJoinGame(socket, data));
     socket.on("placeBid", (data) => this.onPlaceBid(socket, data));
+    socket.on("playCard", (data) => this.onPlayCard(socket, data));
 }
 
 disconnect(socket: Socket) {
