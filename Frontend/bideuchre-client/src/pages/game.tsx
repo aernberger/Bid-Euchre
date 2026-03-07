@@ -24,6 +24,7 @@ export default function Game() {
     interface Bid {
         type: BidType;
         number: number;
+        suit?: Suit;
     }
 
     const [biddingPhase, setBiddingPhase] = React.useState(true);
@@ -107,11 +108,15 @@ export default function Game() {
         return;
     }
 
-    const data = {
+    const data: { tricks: number; contractType: number; suitType?: string; loner: boolean } = {
         tricks: bid.number,
         contractType: contractTypeMap[bid.type],
         loner: false
     };
+
+    if (bid.type === "Suited" && bid.suit) {
+        data.suitType = bid.suit.charAt(0).toUpperCase() + bid.suit.slice(1);
+    }
 
     console.log("Frontend: Sending bid to socket", data);
 

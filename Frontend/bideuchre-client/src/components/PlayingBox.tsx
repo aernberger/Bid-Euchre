@@ -5,10 +5,13 @@ import WhiteBox from "./WhiteBox.tsx";
 import { placeBid } from '../sockets/socket.js';
 
 type BidType = "Low" | "Suited" | "High";
+type Suit = "hearts" | "spades" | "diamonds" | "clubs";
+type Card = { suit: Suit; value: string };
 
 interface Bid {
     type: BidType;
     number: number;
+    suit?: Suit;  // Required when type is "Suited" - becomes trump suit
 }
 
 
@@ -48,8 +51,11 @@ export default function PlayingBox({
 }: PlayingBoxProperties) {
     const [selectedType, setSelectedType] = useState<BidType | null>(null);
     const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
+    const [selectedSuit, setSelectedSuit] = useState<Suit | null>(null);
 
-    const canConfirm = selectedType !== null && selectedNumber !== null
+    const needsSuit = selectedType === "Suited";
+    const hasSuit = !needsSuit || selectedSuit !== null;
+    const canConfirm = selectedType !== null && selectedNumber !== null && hasSuit
         && isBidValid(selectedType, selectedNumber, currentHighBid);
 
     return (
@@ -72,6 +78,21 @@ export default function PlayingBox({
                             </button>
                         ))}
                     </div>
+                    {needsSuit && (
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px" }}>
+                            <span>Choose trump suit:</span>
+                            {(["hearts", "spades", "diamonds", "clubs"] as Suit[]).map((suit) => (
+                                <button
+                                    key={suit}
+                                    disabled={!isPlayerTurn}
+                                    onClick={() => setSelectedSuit(suit)}
+                                    style={{ fontWeight: selectedSuit === suit ? "bold" : "normal" }}
+                                >
+                                    {suit.charAt(0).toUpperCase() + suit.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div style={{ display: "flex", gap: "8px" }}>
                         {[1, 2, 3, 4, 5, 6].map((num) => {
                             const anyTypeValid = (["Low", "Suited", "High"] as BidType[]).some(
@@ -94,7 +115,11 @@ export default function PlayingBox({
                             disabled={!isPlayerTurn || !canConfirm}
                             onClick={() => {
                                 if (selectedType && selectedNumber) {
-                                    onBidSubmit({ type: selectedType, number: selectedNumber });
+                                    const bid: Bid = { type: selectedType, number: selectedNumber };
+                                    if (selectedType === "Suited" && selectedSuit) {
+                                        bid.suit = selectedSuit;
+                                    }
+                                    onBidSubmit(bid);
                                 }
                             }}
                         >
@@ -110,7 +135,7 @@ export default function PlayingBox({
                 </div>
             )}
 
-            {playingPhase && (
+            {/* {playingPhase && (
                 <div>
                     <h3>Trump: {trumpSuit ?? "Not set"}</h3>
                     <div>
@@ -127,7 +152,7 @@ export default function PlayingBox({
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
         </WhiteBox>
     );
 }

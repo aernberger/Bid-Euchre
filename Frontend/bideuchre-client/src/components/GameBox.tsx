@@ -112,7 +112,7 @@ const sideSlotStyle = {
             CENTER TEST
             </div>
         <div style={{ fontWeight: 800, fontSize: "18px" }}>
-            Bid: {bid.type} {bid.number}
+            Bid: {bid ? `${bid.type} ${bid.number}` : "None"}
         </div>
 
 <div style={{ fontWeight: 700, fontSize: "16px", opacity: 0.9 }}>
