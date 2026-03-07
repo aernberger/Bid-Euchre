@@ -47,6 +47,6 @@ export class Bid {
     }
 
     isPass(): boolean {
-        return this.tricks === 0;
+        return this.tricks === 0 && this.contractType === ContractType.LOW;
     }
 }
