@@ -176,12 +176,7 @@ export class GameController {
   
     this.contract = new Contract(this.highestBid);
   
-    this.game.startNewRound(this.contract);
-
-
-    this.phase = GamePhase.PLAYING;
-
-    
+     // determine first player: player to the left of the declarer
     const declarerIndex = this.players.findIndex(
       p => p.id === this.contract!.declarerId
     );
@@ -189,10 +184,16 @@ export class GameController {
     if (declarerIndex === -1) {
       this.currentPlayerIndex = 0;
     } else {
-      // if declarer is in the last seat, wrap to 0, otherwise +1
       this.currentPlayerIndex =
         declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
     }
+
+    // pass the player id who will lead the first trick into Game.startNewRound
+    const startingLeaderId = this.players[this.currentPlayerIndex].id;
+    this.game.startNewRound(this.contract, startingLeaderId);
+
+
+    this.phase = GamePhase.PLAYING;
 
     return {
       type: "BIDDING_COMPLETE",
@@ -201,7 +202,12 @@ export class GameController {
       phase: this.phase
     };
 
+  }
 
+  private getPlayerIndex(playerId: string): number {
+    const idx = this.players.findIndex(p => p.id === playerId);
+    if (idx === -1) throw new Error("Player not found: " + playerId);
+    return idx;
   }
 
   private advanceTurn(): void {
@@ -211,64 +217,49 @@ export class GameController {
 
 
 public playCard(playerId: string, card: Card) {
-
   if (this.phase !== GamePhase.PLAYING) {
     throw new Error("Game is not in playing phase");
   }
 
   const currentPlayer = this.players[this.currentPlayerIndex];
-
-  if (currentPlayer.id !== playerId) {
+  if (!currentPlayer || currentPlayer.id !== playerId) {
     throw new Error("Not your turn");
   }
 
-  const hand = this.playerHands.get(playerId);
+  // let Player validate/remove the card from their hand
+  currentPlayer.playCard(card);
+  // keep controller's cache in sync
+  this.playerHands.set(playerId, new Hand([...currentPlayer.hand]));
 
-  if (!hand) {
-    throw new Error("Hand not found");
-  }
+  // delegate trick/round handling to Game (which uses Round/Trick)
+  const roundResult = this.game.playCard(playerId, card);
 
-  const cards = hand.getCards();
-
-  const leadSuit = this.game["currentRound"]?.["currentTrick"]?.getLeadSuit?.();
-
-  if (leadSuit) {
-
-    const hasSuit = cards.some(
-      c => this.contract!.getEffectiveSuit(c) === leadSuit
-    );
-
-    if (hasSuit && this.contract!.getEffectiveSuit(card) !== leadSuit) {
-      throw new Error("Must follow suit");
-    }
-  }
-
-  hand.removeCard(card);
-
-  this.game.playCard(playerId, card);
-
+  // basic turn progression (Game/Round will decide next leader internally)
   this.advanceTurn();
 
-  if (this.game.isGameOver()) {
-
-    const winner = this.game.getWinningTeam();
-
-    this.phase = GamePhase.WAITING;
-
-    return {
-      type: "GAME_COMPLETE",
-      winnerTeamId: winner?.teamId
-    };
+  if (roundResult) {
+    // round finished — return summary and check for game end
+    if (this.game.isGameOver()) {
+      const winner = this.game.getWinningTeam();
+      this.phase = GamePhase.WAITING;
+      return {
+        type: "GAME_COMPLETE",
+        winnerTeamId: winner?.teamId,
+        round: roundResult,
+      };
+    }
+    return { type: "ROUND_COMPLETE", roundResult };
   }
 
   return {
     type: "CARD_PLAYED",
     playerId,
-    nextPlayerId: this.players[this.currentPlayerIndex].id
+    nextPlayerId: this.players[this.currentPlayerIndex].id,
+    playedBy: playerId,
   };
 }
 
-  }
+}
 
     
   
