@@ -116,16 +116,6 @@ export class GameController {
     };
   }
 
-  private getPlayerIndex(playerId: string): number {
-  const index = this.players.findIndex(p => p.id === playerId);
-
-  if (index === -1) {
-    throw new Error("Player not found");
-  }
-
-  return index;
-}
-
   placeBid(bid: Bid) {
     if (this.phase !== GamePhase.BIDDING) {
       throw new Error("Game is not in bidding phase");
