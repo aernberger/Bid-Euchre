@@ -53,7 +53,28 @@ export class Contract {
     );
   }
 
+  getEffectiveSuit(card: Card): SuitType {
+
+  // Only matters in suited contracts
+  if (this.type !== ContractType.SUITED || !this.trumpSuit) {
+    return card.suit;
+  }
+
+  const isLeftBower =
+    card.face === Face.JACK &&
+    card.suit !== this.trumpSuit &&
+    this.isSameColorSuit(card.suit, this.trumpSuit);
+
+  if (isLeftBower) {
+    return this.trumpSuit;
+  }
+
+  return card.suit;
+}
+
   private getCardRank(card: Card, ledSuit: SuitType): number {
+    const suit = this.getEffectiveSuit(card);
+
     // High/Low contract type
     if (this.type !== ContractType.SUITED) {
         const values =
@@ -86,11 +107,11 @@ export class Contract {
 
     if (isNonSuitedJack) return 99
 
-    if (card.suit === this.trumpSuit) {
+    if (suit === this.trumpSuit) {
         return 80 + HIGH_RANK_VALUES[card.face]
     }
 
-    if (card.suit === ledSuit) {
+    if (suit === ledSuit) {
         return 40 + HIGH_RANK_VALUES[card.face]
     }
 
