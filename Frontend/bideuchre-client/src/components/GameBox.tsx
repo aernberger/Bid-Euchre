@@ -1,16 +1,8 @@
 import React from "react";
-import WhiteBox from "./WhiteBox.tsx";
-import PlayingCard from "./PlayingCard.tsx";
-import CardBack from "./CardBack.tsx";
-
-type Suit = "hearts" | "spades" | "diamonds" | "clubs";
-type Card = { suit: Suit; value: string };
-type BidType = "Low" | "Suited" | "High";
-
-interface Bid {
-    type: BidType;
-    number: number;
-}
+import WhiteBox from "./WhiteBox";
+import PlayingCard from "./PlayingCard";
+import CardBack from "./CardBack";
+import { Bid, BidType, Suit, Card } from '../types';
 
 interface GameBoxProperties {
   trumpSuit?: Suit;

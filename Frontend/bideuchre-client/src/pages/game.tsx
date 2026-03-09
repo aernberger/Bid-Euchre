@@ -2,13 +2,15 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
-import PlayingBox from '../components/PlayingBox.tsx';
+import BiddingBox from '../components/BiddingBox.tsx';
 import GameBox from "../components/GameBox.tsx";
 import { placeBid, connectSocket, registerGameListeners } from '../sockets/socket.ts';
 import { Contract } from "../services/contract.js";
 import Trick from "../models/trick.js";
+import { Bid, BidType, Suit, Card } from '../types.js';
 
 export default function Game() {
+    // This will be replaced with the map of the players card's when we figure out the connection
     const [cards, setCards] = React.useState([
         {suit: "hearts", value: "3", disabled:true},
         {suit: "diamonds", value: "Q"},
@@ -17,15 +19,6 @@ export default function Game() {
         {suit: "diamonds", value: "Q"},
         {suit: "diamonds", value: "Q"},
     ]);
-
-    type BidType = "Low" | "Suited" | "High";
-    type Suit = "hearts" | "diamonds" | "clubs" | "spades";
-
-    interface Bid {
-        type: BidType;
-        number: number;
-        suit?: Suit;
-    }
 
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [playingPhase, setPlayingPhase] = React.useState(false);
@@ -186,13 +179,9 @@ export default function Game() {
     }}>
         {/* TOP AREA */}
     {biddingPhase ? (
-            <PlayingBox
-                biddingPhase={true}
-                playingPhase={false}
+            <BiddingBox
                 currentHighBid={currentHighBid}
                 onBidSubmit={handleBidSubmit}
-                currentTrick={fakeTrick}
-                trumpSuit={trumpSuit}
                 isPlayerTurn={isPlayerTurn}
             />
             ) : (

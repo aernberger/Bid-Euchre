@@ -1,29 +1,14 @@
 import React from 'react';
 import { useState } from 'react';
-import PlayingCard from "./PlayingCard.tsx";
-import WhiteBox from "./WhiteBox.tsx";
-import { placeBid } from '../sockets/socket.js';
-
-type BidType = "Low" | "Suited" | "High";
-type Suit = "hearts" | "spades" | "diamonds" | "clubs";
-type Card = { suit: Suit; value: string };
-
-interface Bid {
-    type: BidType;
-    number: number;
-    suit?: Suit;  // Required when type is "Suited" - becomes trump suit
-}
+import PlayingCard from "./PlayingCard";
+import WhiteBox from "./WhiteBox";
+import { placeBid } from '../sockets/socket';
+import { Bid, BidType, Suit, Card } from '../types';
 
 
-interface PlayingBoxProperties {
-    biddingPhase: boolean;
-    playingPhase: boolean;
-
+interface BiddingBoxProperties {
     currentHighBid: Bid | null;
     onBidSubmit: (bid: Bid) => void;
-
-    currentTrick: Card[];
-    trumpSuit?: Suit;
     isPlayerTurn: boolean;
 }
 
@@ -40,15 +25,11 @@ function isBidValid(type: BidType, number: number, currentHighBid: Bid | null): 
     return false;
 }
 
-export default function PlayingBox({
-    biddingPhase,
-    playingPhase,
+export default function BiddingBox({
     currentHighBid,
     onBidSubmit,
-    currentTrick,
-    trumpSuit,
     isPlayerTurn
-}: PlayingBoxProperties) {
+}: BiddingBoxProperties) {
     const [selectedType, setSelectedType] = useState<BidType | null>(null);
     const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
     const [selectedSuit, setSelectedSuit] = useState<Suit | null>(null);
@@ -60,7 +41,6 @@ export default function PlayingBox({
 
     return (
         <WhiteBox height={"clamp(333px, 45vh, 625px)"}>
-            {biddingPhase && (
                 <div>
                     <h3>
                         {isPlayerTurn ? "Your turn to bid" : "Waiting for your turn to bid"}
@@ -133,26 +113,6 @@ export default function PlayingBox({
                         </button>
                     </div>
                 </div>
-            )}
-
-            {/* {playingPhase && (
-                <div>
-                    <h3>Trump: {trumpSuit ?? "Not set"}</h3>
-                    <div>
-                        <h4>Current Trick</h4>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            {currentTrick.map((card, index) => (
-                                <PlayingCard
-                                    key={index}
-                                    suit={card.suit}
-                                    value={card.value}
-                                    disabled={true}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )} */}
         </WhiteBox>
     );
 }
