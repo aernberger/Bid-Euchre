@@ -21,7 +21,7 @@ export default class Trick{
           }
       
           if (this.plays.length === 0) {
-            this.leadSuit = card.suit
+            this.leadSuit = this.contract.getEffectiveSuit(card)
           }
       
           this.plays.push({ playerId, card })

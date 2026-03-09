@@ -17,11 +17,8 @@ export class Game {
       this.teams = teams
     }
   
-    startNewRound(contract: Contract) {
-      this.currentRound = new Round(
-        contract,
-        this.teams
-      )
+    startNewRound(contract: Contract, startingLeaderId?: string) {
+      this.currentRound = new Round(contract, this.teams, startingLeaderId)
     }
   
     playCard(playerId: string, card: Card) {
@@ -35,7 +32,10 @@ export class Game {
         const result = this.currentRound.getRoundResult()
         this.applyRoundResult(result)
         this.currentRound = undefined
+        return result
       }
+
+      return undefined
     }
   
     private applyRoundResult(result: RoundResult) {

@@ -9,6 +9,7 @@ import Card from "../models/card.js";
 import Team from "../models/team.js";
 import { ContractType } from "../services/enums/contractType.js";
 import { SuitType } from "../models/enums/suit.js";
+import Trick from "../models/trick.js";
 
 export class GameController {
   private game!: Game;
@@ -21,11 +22,8 @@ export class GameController {
   private winningBid: Bid | null = null;
   private currentPlayerIndex: number = 0;
   private dealerIndex: number = 0;
-  private playedCards: Card[] = [];
-  private highestCard: Card | null = null;
   private contract: Contract | null = null;
-  private ledSuit: SuitType | null = null;
-  
+
   private playerHands: Map<string, Hand> = new Map();
 
   /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
@@ -178,15 +176,7 @@ export class GameController {
   
     this.contract = new Contract(this.highestBid);
   
-    this.game.startNewRound(this.contract);
-
-    this.playedCards = [];
-    this.highestCard = null;
-    this.ledSuit = null;
-  
-    this.phase = GamePhase.PLAYING;
-
-    
+     // determine first player: player to the left of the declarer
     const declarerIndex = this.players.findIndex(
       p => p.id === this.contract!.declarerId
     );
@@ -194,10 +184,16 @@ export class GameController {
     if (declarerIndex === -1) {
       this.currentPlayerIndex = 0;
     } else {
-      // if declarer is in the last seat, wrap to 0, otherwise +1
       this.currentPlayerIndex =
         declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
     }
+
+    // pass the player id who will lead the first trick into Game.startNewRound
+    const startingLeaderId = this.players[this.currentPlayerIndex].id;
+    this.game.startNewRound(this.contract, startingLeaderId);
+
+
+    this.phase = GamePhase.PLAYING;
 
     return {
       type: "BIDDING_COMPLETE",
@@ -206,7 +202,12 @@ export class GameController {
       phase: this.phase
     };
 
+  }
 
+  private getPlayerIndex(playerId: string): number {
+    const idx = this.players.findIndex(p => p.id === playerId);
+    if (idx === -1) throw new Error("Player not found: " + playerId);
+    return idx;
   }
 
   private advanceTurn(): void {
@@ -215,76 +216,50 @@ export class GameController {
   }
 
 
-public playCard(playerId: string, card: Card){
-    if (this.phase !== GamePhase.PLAYING) {
-      throw new Error("Game is not in playing phase");
-    }
-
-    const currentPlayer = this.players[this.currentPlayerIndex];
-    if (!currentPlayer) {
-      throw new Error("No current player");
-    }
-
-    if (currentPlayer.id !== playerId) {
-      throw new Error("Not your turn");
-    }
-
-    currentPlayer.playCard(card);
-  
-    this.playerHands.set(currentPlayer.id, new Hand([...currentPlayer.hand]));
-    this.playedCards.push(card);
-
-    if(this.playedCards.length == 1){
-      this.ledSuit = card.suit;
-      this.highestCard = card;
-    }
-
-    if (!this.contract) {
-      throw new Error("No active contract");
-    }
-
-
-    const led = this.ledSuit as SuitType;
-    if (this.highestCard && this.contract.compareCards(card, this.highestCard, led) > 0) {
-        this.highestCard = card;
-    }
-
-    const playedBy = currentPlayer.id;
-  
-  
-    this.advanceTurn();
-  
-    if (this.isTrickComplete()) {
-      const endResult: any = this.endTrick();
-      if (endResult && typeof endResult === "object") {
-        endResult.playedBy = playedBy;
-      }
-      return endResult;
-    }
-  
-    return {
-      type: "Card_Played",
-      highest: this.highestCard,
-      nextPlayerId: this.players[this.currentPlayerIndex].id,
-      playedBy: playedBy
-    };
+public playCard(playerId: string, card: Card) {
+  if (this.phase !== GamePhase.PLAYING) {
+    throw new Error("Game is not in playing phase");
   }
 
-  private isTrickComplete() : boolean{
-    return this.playedCards.length >= this.players.length;
+  const currentPlayer = this.players[this.currentPlayerIndex];
+  if (!currentPlayer || currentPlayer.id !== playerId) {
+    throw new Error("Not your turn");
   }
 
-  private endTrick(){
-    if (!this.highestCard) {
-      this.phase = GamePhase.BIDDING;
+  // let Player validate/remove the card from their hand
+  currentPlayer.playCard(card);
+  // keep controller's cache in sync
+  this.playerHands.set(playerId, new Hand([...currentPlayer.hand]));
+
+  // delegate trick/round handling to Game (which uses Round/Trick)
+  const roundResult = this.game.playCard(playerId, card);
+
+  // basic turn progression (Game/Round will decide next leader internally)
+  this.advanceTurn();
+
+  if (roundResult) {
+    // round finished — return summary and check for game end
+    if (this.game.isGameOver()) {
+      const winner = this.game.getWinningTeam();
+      this.phase = GamePhase.WAITING;
       return {
-        type: "REDEAL_REQUIRED"
+        type: "GAME_COMPLETE",
+        winnerTeamId: winner?.teamId,
+        round: roundResult,
       };
-  }
+    }
+    return { type: "ROUND_COMPLETE", roundResult };
   }
 
+  return {
+    type: "CARD_PLAYED",
+    playerId,
+    nextPlayerId: this.players[this.currentPlayerIndex].id,
+    playedBy: playerId,
+  };
+}
 
-  }
+}
 
     
   
