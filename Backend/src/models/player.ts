@@ -1,7 +1,7 @@
 import type Card from "./card.js";
 
 export default class Player {
-  id: string | number;
+  id: string;
   name: string;
   hand: Card[] = [];
 
