@@ -28,16 +28,49 @@ export class GameController {
   
   private playerHands: Map<string, Hand> = new Map();
 
-  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
+  /** Returns the list of players in the game (for iterating when sending hands). */
+  getPlayers() {
+    return [...this.players];
+  }
+
+  /** Returns a player's hand as serialized cards (suit, face) for sending to that client only. */
+  getPlayerHand(playerId: string): { suit: string; face: string }[] | null {
+    const hand = this.playerHands.get(playerId);
+    if (!hand) return null;
+    return hand.getCards().map((c) => ({ suit: c.suit, face: c.face }));
+  }
+
+  /** Returns which cards a player can legally play (follow-suit rules). Used to disable illegal cards in UI. */
+  getPlayableCards(playerId: string): { suit: string; face: string }[] | null {
+    const hand = this.playerHands.get(playerId);
+    if (!hand) return null;
+    const playable = hand.getPlayableCards(this.ledSuit as SuitType | undefined);
+    return playable.map((c) => ({ suit: c.suit, face: c.face }));
+  }
+
+  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid, playedCards). */
   getPublicState() {
     const currentPlayer = this.players[this.currentPlayerIndex];
-    return {
+    const playerHandCounts: Record<string, number> = {};
+    for (const [id, hand] of this.playerHands) {
+      playerHandCounts[id] = hand.getCards().length;
+    }
+    const base = {
       phase: this.phase,
       players: this.players.map((p) => ({ id: p.id, name: p.name })),
       currentPlayerId: currentPlayer?.id ?? null,
       highestBid: this.highestBid,
       winningBid: this.winningBid,
+      playerHandCounts,
     };
+    // Include playedCards in PLAYING phase so all clients see the current trick (not just the one who played)
+    if (this.phase === GamePhase.PLAYING && this.playedCards.length > 0) {
+      return {
+        ...base,
+        playedCards: this.playedCards.map((c) => ({ suit: c.suit, face: c.face })),
+      };
+    }
+    return base;
   }
 
   addPlayer(player: Player) {
@@ -175,7 +208,8 @@ export class GameController {
         type: "REDEAL_REQUIRED",
       };
     }
-  
+
+    this.winningBid = this.highestBid;
     this.contract = new Contract(this.highestBid);
   
     this.game.startNewRound(this.contract);
@@ -229,9 +263,10 @@ public playCard(playerId: string, card: Card){
       throw new Error("Not your turn");
     }
 
-    currentPlayer.playCard(card);
-  
-    this.playerHands.set(currentPlayer.id, new Hand([...currentPlayer.hand]));
+    // Use Hand from playerHands (Player.hand is not synced); Hand enforces follow-suit rules
+    const hand = this.playerHands.get(currentPlayer.id);
+    if (!hand) throw new Error("No hand for player");
+    hand.playCard(card, this.ledSuit as SuitType | undefined);
     this.playedCards.push(card);
 
     if(this.playedCards.length == 1){
@@ -262,11 +297,13 @@ public playCard(playerId: string, card: Card){
       return endResult;
     }
   
+    // Include playedCards so all clients can display the current trick in the center
     return {
       type: "Card_Played",
       highest: this.highestCard,
       nextPlayerId: this.players[this.currentPlayerIndex].id,
-      playedBy: playedBy
+      playedBy: playedBy,
+      playedCards: this.playedCards.map((c) => ({ suit: c.suit, face: c.face })),
     };
   }
 
@@ -280,7 +317,15 @@ public playCard(playerId: string, card: Card){
       return {
         type: "REDEAL_REQUIRED"
       };
-  }
+    }
+    // Clear trick state for next trick; return TrickComplete so frontend clears center
+    this.playedCards = [];
+    this.highestCard = null;
+    this.ledSuit = null;
+    return {
+      type: "TrickComplete",
+      nextPlayerId: this.players[this.currentPlayerIndex].id,
+    };
   }
 
 
