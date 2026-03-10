@@ -6,6 +6,8 @@ import { Server } from "socket.io";
 import http from "http";
 import SocketHandler from "./controller/socketHandler.js";
 dotenv.config();
+import supabase from "./supabaseClient.js";
+
 
 const PORT_NUMBER = process.env.PORT || 8000;
 
@@ -23,6 +25,24 @@ app.use("/api/games", gameRoutes);
 // app.listen(8000, () => {
 //   console.log("Server running on port 8000");
 // });
+
+app.get("/test-db", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('id').limit(1);
+    
+    if (error) {
+      return res.status(400).json({ connected: false, error: error.message });
+    }
+    
+    res.json({ 
+      connected: true, 
+      message: "Successfully reached Supabase!",
+      sampleData: data 
+    });
+  } catch (err: any) {
+    res.status(500).json({ connected: false, error: err.message });
+  }
+});
 
 
 const httpServer = http.createServer(app);
