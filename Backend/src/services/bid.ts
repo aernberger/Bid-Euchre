@@ -20,6 +20,10 @@ export class Bid {
         if (contractType === ContractType.SUITED && !suitType) {
             throw new Error("Suited bid must have a suit type");
         }
+
+        if (contractType !== ContractType.SUITED && suitType !== undefined) {
+            throw new Error("Non-suited bids cannot have a suit type");
+        }
     }
 
     /**
