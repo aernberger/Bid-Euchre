@@ -5,10 +5,6 @@ import { ContractType } from '../services/enums/contractType.js';
 import { Bid } from '../services/bid.js';
 
 const bidderId = 'player1';
-const standardBid = new Bid(bidderId, 3, ContractType.HIGH, undefined, false);
-const suitedBid = new Bid(bidderId, 4, ContractType.SUITED, Suit.SPADES, false);
-const lonerBid = new Bid(bidderId, 6, ContractType.SUITED, Suit.HEARTS, true);
-const passBid = new Bid(bidderId, 0, ContractType.LOW, undefined, false);
 
 test('test constructor sets properties', function() {
     const testBid = new Bid('testPlayer', 2, ContractType.HIGH, undefined, false);
