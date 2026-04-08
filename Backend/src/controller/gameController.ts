@@ -26,16 +26,49 @@ export class GameController {
 
   private playerHands: Map<string, Hand> = new Map();
 
-  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
+  /** Returns the list of players in the game (for iterating when sending hands). */
+  getPlayers() {
+    return [...this.players];
+  }
+
+  /** Returns a player's hand as serialized cards (suit, face) for sending to that client only. */
+  getPlayerHand(playerId: string): { suit: string; face: string }[] | null {
+    const hand = this.playerHands.get(playerId);
+    if (!hand) return null;
+    return hand.getCards().map((c) => ({ suit: c.suit, face: c.face }));
+  }
+
+  /** Returns which cards a player can legally play (follow-suit rules). Used to disable illegal cards in UI. */
+  getPlayableCards(playerId: string): { suit: string; face: string }[] | null {
+    const hand = this.playerHands.get(playerId);
+    if (!hand) return null;
+    const playable = hand.getPlayableCards(this.ledSuit as SuitType | undefined);
+    return playable.map((c) => ({ suit: c.suit, face: c.face }));
+  }
+
+  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid, playedCards). */
   getPublicState() {
     const currentPlayer = this.players[this.currentPlayerIndex];
-    return {
+    const playerHandCounts: Record<string, number> = {};
+    for (const [id, hand] of this.playerHands) {
+      playerHandCounts[id] = hand.getCards().length;
+    }
+    const base = {
       phase: this.phase,
       players: this.players.map((p) => ({ id: p.id, name: p.name })),
       currentPlayerId: currentPlayer?.id ?? null,
       highestBid: this.highestBid,
       winningBid: this.winningBid,
+      playerHandCounts,
     };
+    // Include playedCards in PLAYING phase so all clients see the current trick (not just the one who played)
+    if (this.phase === GamePhase.PLAYING && this.playedCards.length > 0) {
+      return {
+        ...base,
+        playedCards: this.playedCards.map((c) => ({ suit: c.suit, face: c.face })),
+      };
+    }
+    return base;
   }
 
   addPlayer(player: Player) {
@@ -173,7 +206,8 @@ export class GameController {
         type: "REDEAL_REQUIRED",
       };
     }
-  
+
+    this.winningBid = this.highestBid;
     this.contract = new Contract(this.highestBid);
   
      // determine first player: player to the left of the declarer
@@ -216,10 +250,34 @@ export class GameController {
   }
 
 
-public playCard(playerId: string, card: Card) {
-  if (this.phase !== GamePhase.PLAYING) {
-    throw new Error("Game is not in playing phase");
-  }
+public playCard(playerId: string, card: Card){
+    if (this.phase !== GamePhase.PLAYING) {
+      throw new Error("Game is not in playing phase");
+    }
+
+    const currentPlayer = this.players[this.currentPlayerIndex];
+    if (!currentPlayer) {
+      throw new Error("No current player");
+    }
+
+    if (currentPlayer.id !== playerId) {
+      throw new Error("Not your turn");
+    }
+
+    // Use Hand from playerHands (Player.hand is not synced); Hand enforces follow-suit rules
+    const hand = this.playerHands.get(currentPlayer.id);
+    if (!hand) throw new Error("No hand for player");
+    hand.playCard(card, this.ledSuit as SuitType | undefined);
+    this.playedCards.push(card);
+
+    if(this.playedCards.length == 1){
+      this.ledSuit = card.suit;
+      this.highestCard = card;
+    }
+
+    if (!this.contract) {
+      throw new Error("No active contract");
+    }
 
   const currentPlayer = this.players[this.currentPlayerIndex];
   if (!currentPlayer || currentPlayer.id !== playerId) {
@@ -231,8 +289,28 @@ public playCard(playerId: string, card: Card) {
   // keep controller's cache in sync
   this.playerHands.set(playerId, new Hand([...currentPlayer.hand]));
 
-  // delegate trick/round handling to Game (which uses Round/Trick)
-  const roundResult = this.game.playCard(playerId, card);
+    const playedBy = currentPlayer.id;
+  
+  
+    this.advanceTurn();
+  
+    if (this.isTrickComplete()) {
+      const endResult: any = this.endTrick();
+      if (endResult && typeof endResult === "object") {
+        endResult.playedBy = playedBy;
+      }
+      return endResult;
+    }
+  
+    // Include playedCards so all clients can display the current trick in the center
+    return {
+      type: "Card_Played",
+      highest: this.highestCard,
+      nextPlayerId: this.players[this.currentPlayerIndex].id,
+      playedBy: playedBy,
+      playedCards: this.playedCards.map((c) => ({ suit: c.suit, face: c.face })),
+    };
+  }
 
   // basic turn progression (Game/Round will decide next leader internally)
   this.advanceTurn();
@@ -248,7 +326,14 @@ public playCard(playerId: string, card: Card) {
         round: roundResult,
       };
     }
-    return { type: "ROUND_COMPLETE", roundResult };
+    // Clear trick state for next trick; return TrickComplete so frontend clears center
+    this.playedCards = [];
+    this.highestCard = null;
+    this.ledSuit = null;
+    return {
+      type: "TrickComplete",
+      nextPlayerId: this.players[this.currentPlayerIndex].id,
+    };
   }
 
   return {
