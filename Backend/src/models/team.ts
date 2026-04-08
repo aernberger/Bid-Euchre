@@ -6,6 +6,7 @@ export default class Team {
   player2: Player;
   handScore: number = 0;
   gameScore: number = 0;
+  isDeclarerTeam: boolean = false;
 
   constructor(player1: Player, player2: Player, teamId: number) {
     this.player1 = player1;

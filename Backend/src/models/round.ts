@@ -1,4 +1,5 @@
 import { Contract } from "../services/contract.js"
+import { ScoringEngine } from "../services/scoringService.js"
 import Card from "./card.js"
 import { RoundResult } from "./roundResult.js"
 import Team from "./team.js"
@@ -33,6 +34,7 @@ export class Round {
         this.currentTrick = this.createNewTrick(winnerId)
 
         if (this.isComplete()) {
+          
           return this.getRoundResult()
         }
       }
@@ -65,40 +67,48 @@ export class Round {
       
         return team
     }
-  
+
     getRoundResult(): RoundResult {
-        const declarerTeam = this.getTeamByPlayer(this.contract.declarerId)
-        const defenderTeam = this.teams.find(team => team !== declarerTeam)
-        if (!defenderTeam) {
-            throw new Error("Could not determine opposing team")
-        }
-      
-        const declarerTricks = this.teamTrickCounts.get(declarerTeam.teamId)!
-        const defenderTricks = this.teamTrickCounts.get(defenderTeam.teamId)!
-        const contractMade =
-          declarerTricks >= this.contract.tricksRequired
-      
-        let pointsAwardedToTeamId: number
-        let pointsAwarded: number
-      
-        if (contractMade) {
-          pointsAwardedToTeamId = declarerTeam.teamId
-          pointsAwarded = declarerTricks
-        } else {
-          pointsAwardedToTeamId = defenderTeam.teamId
-          pointsAwarded = this.contract.tricksRequired
-        }
-      
-        return new RoundResult(
-          declarerTeam.teamId,
-          defenderTeam.teamId,
-          declarerTricks,
-          defenderTricks,
-          contractMade,
-          pointsAwardedToTeamId,
-          pointsAwarded,
-          this.contract.loner,
-          this.contract.isMoonShot()
-        )
+        return ScoringEngine.calculateScore(
+          this.contract,
+          this.teams,
+          this.teamTrickCounts
+        );
       }
+  
+    // getRoundResult(): RoundResult {
+    //     const declarerTeam = this.getTeamByPlayer(this.contract.declarerId)
+    //     const defenderTeam = this.teams.find(team => team !== declarerTeam)
+    //     if (!defenderTeam) {
+    //         throw new Error("Could not determine opposing team")
+    //     }
+      
+    //     const declarerTricks = this.teamTrickCounts.get(declarerTeam.teamId)!
+    //     const defenderTricks = this.teamTrickCounts.get(defenderTeam.teamId)!
+    //     const contractMade =
+    //       declarerTricks >= this.contract.tricksRequired
+      
+    //     let pointsAwardedToTeamId: number
+    //     let pointsAwarded: number
+      
+    //     if (contractMade) {
+    //       pointsAwardedToTeamId = declarerTeam.teamId
+    //       pointsAwarded = declarerTricks
+    //     } else {
+    //       pointsAwardedToTeamId = defenderTeam.teamId
+    //       pointsAwarded = this.contract.tricksRequired
+    //     }
+      
+    //     return new RoundResult(
+    //       declarerTeam.teamId,
+    //       defenderTeam.teamId,
+    //       declarerTricks,
+    //       defenderTricks,
+    //       contractMade,
+    //       pointsAwardedToTeamId,
+    //       pointsAwarded,
+    //       this.contract.loner,
+    //       this.contract.isMoonShot()
+    //     )
+    //   }
   }
