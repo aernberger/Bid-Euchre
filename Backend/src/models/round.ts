@@ -11,16 +11,18 @@ export class Round {
   
     constructor(
       private readonly contract: Contract,
-      private readonly teams: Team[]
+      private readonly teams: Team[],
+      private readonly startingLeaderId?: string
+      
     ) {
       teams.forEach(team => {
         this.teamTrickCounts.set(team.teamId, 0)
       })
   
-      this.currentTrick = this.createNewTrick()
+      this.currentTrick = this.createNewTrick(this.startingLeaderId)
     }
   
-    playCard(playerId: string, card: Card) {
+     playCard(playerId: string, card: Card): RoundResult | null {
       this.currentTrick.playCard(playerId, card)
   
       if (this.currentTrick.isComplete()) {
@@ -29,7 +31,12 @@ export class Round {
   
         this.tricks.push(this.currentTrick)
         this.currentTrick = this.createNewTrick(winnerId)
+
+        if (this.isComplete()) {
+          return this.getRoundResult()
+        }
       }
+      return null
     }
   
     private recordTrickWin(playerId: string) {
