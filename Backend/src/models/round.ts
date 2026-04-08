@@ -34,6 +34,7 @@ export class Round {
         this.currentTrick = this.createNewTrick(winnerId)
 
         if (this.isComplete()) {
+          
           return this.getRoundResult()
         }
       }

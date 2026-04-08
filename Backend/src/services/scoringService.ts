@@ -37,11 +37,17 @@ export class ScoringEngine {
   
       if (contractCompleted) {
         pointsAwardedToTeamId = declarerTeam.teamId;
-        pointsAwarded = declarerTricks;
+        if(contract.loner && contract.tricksRequired === 6) {
+          pointsAwarded = 12;
+        } else {
+          pointsAwarded = contract.tricksRequired;
+        }
       } else {
         pointsAwardedToTeamId = declarerTeam.teamId;
         pointsAwarded = -contract.tricksRequired;
       }
+
+      declarerTeam.setGameScore(declarerTeam.gameScore + pointsAwarded);
   
       return new RoundResult(
         declarerTeam.teamId,
