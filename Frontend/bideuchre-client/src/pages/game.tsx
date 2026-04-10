@@ -29,11 +29,9 @@ export default function Game() {
         const unregister = registerGameListeners(
             (state: any) => {
             setGameState(state);
-            if (state?.phase === "PLAYING") {
-                setBiddingPhase(false);
-            }
-            // Clear center when trick completes so next trick starts empty
-            if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted) {
+            setBiddingPhase(state?.phase !== "PLAYING");
+            // Clear center when trick/round ends or when we return to bidding.
+            if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
                 setCurrentTrick([]);
             }
             // Sync currentTrick from server so all players see the same cards (converts backend face→value)

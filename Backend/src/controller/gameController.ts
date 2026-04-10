@@ -95,19 +95,7 @@ export class GameController {
 
     this.game = new Game(this.players, [team1, team2]);
     this.dealerIndex = Math.floor(Math.random() * 4);
-
-    this.deck = new Deck();
-    this.deck.shuffle();
-
-    const CARDS_PER_PLAYER = 6;
-    const hands = this.deck.deal(this.players.length, CARDS_PER_PLAYER);
-
-    this.playerHands.clear();
-    for (let i = 0; i < this.players.length; i++) {
-      const playerCards = hands[i] || [];
-      this.players[i].setCards([...playerCards]);
-      this.playerHands.set(this.players[i].id, new Hand(playerCards));
-    }
+    this.dealHands();
 
     // first to act is player left of dealer
     this.currentPlayerIndex = (this.dealerIndex + 1) % this.players.length;
@@ -253,6 +241,33 @@ export class GameController {
     this.currentPlayerIndex = this.getPlayerIndex(playerId);
   }
 
+  private dealHands(): void {
+    this.deck = new Deck();
+    this.deck.shuffle();
+
+    const CARDS_PER_PLAYER = 6;
+    const hands = this.deck.deal(this.players.length, CARDS_PER_PLAYER);
+
+    this.playerHands.clear();
+    for (let i = 0; i < this.players.length; i++) {
+      const playerCards = hands[i] || [];
+      this.players[i].setCards([...playerCards]);
+      this.playerHands.set(this.players[i].id, new Hand(playerCards));
+    }
+  }
+
+  private setupNextBiddingRound(): void {
+    this.bids = [];
+    this.highestBid = null;
+    this.winningBid = null;
+    this.contract = null;
+
+    this.dealerIndex = (this.dealerIndex + 1) % this.players.length;
+    this.currentPlayerIndex = (this.dealerIndex + 1) % this.players.length;
+    this.dealHands();
+    this.phase = GamePhase.BIDDING;
+  }
+
 
   public playCard(playerId: string, card: Card) {
     if (this.phase !== GamePhase.PLAYING) {
@@ -294,7 +309,13 @@ export class GameController {
           round: playProgress.roundResult,
         };
       }
-      return { type: "ROUND_COMPLETE", roundResult: playProgress.roundResult };
+      this.setupNextBiddingRound();
+      return {
+        type: "ROUND_COMPLETE",
+        roundResult: playProgress.roundResult,
+        dealerId: this.players[this.dealerIndex].id,
+        nextPlayerId: this.players[this.currentPlayerIndex].id,
+      };
     }
 
     return {
