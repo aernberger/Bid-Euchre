@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
 import BiddingBox from '../components/BiddingBox.tsx';
@@ -7,13 +7,18 @@ import GameBox from "../components/GameBox.tsx";
 import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket.ts';
 import { Bid, BidType, Suit, Card } from '../types.js';
 
+const contractTypeToBidType: Record<number, BidType> = {
+    0: "Low",
+    1: "Suited",
+    2: "High",
+};
+
 export default function Game() {
     // Player's hand and which cards can be played (from server via yourHand)
     const [cards, setCards] = React.useState<{ suit: string; value: string }[]>([]);
     const [playableCards, setPlayableCards] = React.useState<{ suit: string; value: string }[]>([]);
 
     const [biddingPhase, setBiddingPhase] = React.useState(true);
-    const [playingPhase, setPlayingPhase] = React.useState(false);
     const [gameState, setGameState] = React.useState<any>(null);
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
@@ -21,15 +26,14 @@ export default function Game() {
 
     useEffect(() => {
         connectSocket("dev", undefined, (socketId) => setMyPlayerId(socketId));
-        registerGameListeners(
+        const unregister = registerGameListeners(
             (state: any) => {
             setGameState(state);
             if (state?.phase === "PLAYING") {
                 setBiddingPhase(false);
-                setPlayingPhase(true);
             }
             // Clear center when trick completes so next trick starts empty
-            if (state?.type === "TrickComplete" || state?.newTrick) {
+            if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted) {
                 setCurrentTrick([]);
             }
             // Sync currentTrick from server so all players see the same cards (converts backend face→value)
@@ -48,6 +52,9 @@ export default function Game() {
                 setPlayableCards(handData.playableCards);
             }
         );
+        return () => {
+            unregister?.();
+        };
     }, []);
 
     const currentPlayerId =
@@ -61,12 +68,6 @@ export default function Game() {
         !!myPlayerId &&
         myPlayerId === currentPlayerId &&
         gameState?.phase === "PLAYING";
-
-    const contractTypeToBidType: Record<number, BidType> = {
-        0: "Low",
-        1: "Suited",
-        2: "High",
-    };
 
     const currentHighBid: Bid | null = React.useMemo(() => {
         const bid = gameState?.highestBid ?? gameState?.winningBid;
@@ -150,8 +151,8 @@ export default function Game() {
     const isCardPlayable = (card: { suit: string; value: string }) =>
         playableCards.some((p) => p.suit === card.suit && p.value === card.value);
 
-    // Play a card: only if playable; send to server, optimistically remove from hand and add to center
-    const handlePlayCard = (card: Card, index: number) => {
+    // Play a card by sending to server; hand/table update comes from authoritative socket events.
+    const handlePlayCard = (card: Card) => {
         if (!isCardPlayable(card)) return;
         const valueToFace: Record<string, string> = {
             "9": "9", "10": "10", "J": "Jack", "Q": "Queen", "K": "King", "A": "Ace"
@@ -162,8 +163,6 @@ export default function Game() {
             face: face
         };
         playCard(data);
-        setCards(prev => prev.filter((_, i) => i !== index));
-        setCurrentTrick(prev => [...prev, card]);
     };
 
     return (
@@ -211,7 +210,7 @@ export default function Game() {
                             suit={card.suit as Suit}
                             value={card.value}
                             disabled={!isPlayerPlayingTurn || !isCardPlayable(card)}
-                            onClick={() => isPlayerPlayingTurn && isCardPlayable(card) && handlePlayCard({ suit: card.suit as Suit, value: card.value }, index)}
+                            onClick={() => isPlayerPlayingTurn && isCardPlayable(card) && handlePlayCard({ suit: card.suit as Suit, value: card.value })}
                         />
                     ))}
                 </div>

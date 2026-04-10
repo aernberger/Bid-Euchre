@@ -7,9 +7,6 @@ import Hand from "../models/hand.js";
 import Deck from "../models/deck.js";
 import Card from "../models/card.js";
 import Team from "../models/team.js";
-import { ContractType } from "../services/enums/contractType.js";
-import { SuitType } from "../models/enums/suit.js";
-import Trick from "../models/trick.js";
 
 export class GameController {
   private game!: Game;
@@ -29,12 +26,24 @@ export class GameController {
   /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
   getPublicState() {
     const currentPlayer = this.players[this.currentPlayerIndex];
+    const playerHandCounts = Object.fromEntries(
+      this.players.map((player) => [player.id, this.getPlayerHand(player.id).length])
+    );
+    const playedCards = this.game
+      ? this.game.getCurrentTrickPlays().map((play) => ({
+        playerId: play.playerId,
+        suit: play.card.suit,
+        face: play.card.face,
+      }))
+      : [];
     return {
       phase: this.phase,
       players: this.players.map((p) => ({ id: p.id, name: p.name })),
       currentPlayerId: currentPlayer?.id ?? null,
       highestBid: this.highestBid,
       winningBid: this.winningBid,
+      playedCards,
+      playerHandCounts,
     };
   }
 
@@ -95,8 +104,9 @@ export class GameController {
 
     this.playerHands.clear();
     for (let i = 0; i < this.players.length; i++) {
-      const hand = new Hand(hands[i] || []);
-      this.playerHands.set(this.players[i].id, hand);
+      const playerCards = hands[i] || [];
+      this.players[i].setCards([...playerCards]);
+      this.playerHands.set(this.players[i].id, new Hand(playerCards));
     }
 
     // first to act is player left of dealer
@@ -126,8 +136,7 @@ export class GameController {
 
   public getPlayerHand(playerId: string): Card[] {
     const hand = this.playerHands.get(playerId);
-    // Using 'cards' as the property name; adjust if your Hand model uses something else
-    return hand ? (hand as any).cards : [];
+    return hand ? hand.getCards() : [];
   }
 
   public getPlayableCards(playerId: string): Card[] {
@@ -240,6 +249,10 @@ export class GameController {
       (this.currentPlayerIndex + 1) % this.players.length;
   }
 
+  private setCurrentPlayerById(playerId: string): void {
+    this.currentPlayerIndex = this.getPlayerIndex(playerId);
+  }
+
 
   public playCard(playerId: string, card: Card) {
     if (this.phase !== GamePhase.PLAYING) {
@@ -251,18 +264,26 @@ export class GameController {
       throw new Error("Not your turn");
     }
 
-    // let Player validate/remove the card from their hand
-    currentPlayer.playCard(card);
-    // keep controller's cache in sync
-    this.playerHands.set(playerId, new Hand([...currentPlayer.hand]));
+    const legalMoves = this.getPlayableCards(playerId);
+    const isLegalCard = legalMoves.some(
+      (legalCard) => legalCard.suit === card.suit && legalCard.face === card.face
+    );
+    if (!isLegalCard) {
+      throw new Error("Illegal card play (must follow suit)");
+    }
+
+    const playerHand = this.playerHands.get(playerId);
+    if (!playerHand) {
+      throw new Error("Player hand not found");
+    }
+    playerHand.removeCard(card);
+    currentPlayer.setCards(playerHand.getCards());
 
     // delegate trick/round handling to Game (which uses Round/Trick)
-    const roundResult = this.game.playCard(playerId, card);
+    const playProgress = this.game.playCard(playerId, card);
+    this.setCurrentPlayerById(playProgress.nextPlayerId);
 
-    // basic turn progression (Game/Round will decide next leader internally)
-    this.advanceTurn();
-
-    if (roundResult) {
+    if (playProgress.roundResult) {
       // round finished — return summary and check for game end
       if (this.game.isGameOver()) {
         const winner = this.game.getWinningTeam();
@@ -270,15 +291,16 @@ export class GameController {
         return {
           type: "GAME_COMPLETE",
           winnerTeamId: winner?.teamId,
-          round: roundResult,
+          round: playProgress.roundResult,
         };
       }
-      return { type: "ROUND_COMPLETE", roundResult };
+      return { type: "ROUND_COMPLETE", roundResult: playProgress.roundResult };
     }
 
     return {
       type: "CARD_PLAYED",
       playerId,
+      trickCompleted: playProgress.trickCompleted,
       nextPlayerId: this.players[this.currentPlayerIndex].id,
       playedBy: playerId,
     };

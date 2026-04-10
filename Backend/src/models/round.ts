@@ -5,6 +5,12 @@ import { RoundResult } from "./roundResult.js"
 import Team from "./team.js"
 import Trick from "./trick.js"
 
+export interface PlayCardProgress {
+  roundResult: RoundResult | null
+  trickCompleted: boolean
+  nextPlayerId: string
+}
+
 export class Round {
   private tricks: Trick[] = []
   private currentTrick: Trick
@@ -13,6 +19,7 @@ export class Round {
   constructor(
     private readonly contract: Contract,
     private readonly teams: Team[],
+    private readonly turnOrder: string[],
     private readonly startingLeaderId?: string
 
   ) {
@@ -23,8 +30,9 @@ export class Round {
     this.currentTrick = this.createNewTrick(this.startingLeaderId)
   }
 
-  playCard(playerId: string, card: Card): RoundResult | null {
+  playCard(playerId: string, card: Card): PlayCardProgress {
     this.currentTrick.playCard(playerId, card)
+    const trickLeaderId = this.currentTrick.getLeaderId() ?? playerId
 
     if (this.currentTrick.isComplete()) {
       const winnerId = this.currentTrick.getWinner()
@@ -34,11 +42,26 @@ export class Round {
       this.currentTrick = this.createNewTrick(winnerId)
 
       if (this.isComplete()) {
-
-        return this.getRoundResult()
+        return {
+          roundResult: this.getRoundResult(),
+          trickCompleted: true,
+          nextPlayerId: winnerId,
+        }
+      }
+      return {
+        roundResult: null,
+        trickCompleted: true,
+        nextPlayerId: winnerId,
       }
     }
-    return null
+
+    const playsSoFar = this.currentTrick.getPlays().length
+    const nextPlayerId = this.getPlayerByOffset(trickLeaderId, playsSoFar)
+    return {
+      roundResult: null,
+      trickCompleted: false,
+      nextPlayerId,
+    }
   }
 
   public getCurrentTrick(): Trick {
@@ -68,6 +91,14 @@ export class Round {
   private createNewTrick(leaderId?: string): Trick {
     const maxPlays = this.contract.loner ? 3 : 4
     return new Trick(this.contract, maxPlays, leaderId)
+  }
+
+  private getPlayerByOffset(startingPlayerId: string, offset: number): string {
+    const startIndex = this.turnOrder.findIndex(id => id === startingPlayerId)
+    if (startIndex === -1) {
+      throw new Error("Could not determine next player order")
+    }
+    return this.turnOrder[(startIndex + offset) % this.turnOrder.length]
   }
 
   isComplete(): boolean {

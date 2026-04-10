@@ -1,7 +1,7 @@
 import { Contract } from "../services/contract.js"
 import Card from "./card.js"
 import Player from "./player.js"
-import { Round } from "./round.js"
+import { PlayCardProgress, Round } from "./round.js"
 import { RoundResult } from "./roundResult.js"
 import Team from "./team.js"
 
@@ -18,24 +18,27 @@ export class Game {
   }
 
   startNewRound(contract: Contract, startingLeaderId?: string) {
-    this.currentRound = new Round(contract, this.teams, startingLeaderId)
+    this.currentRound = new Round(
+      contract,
+      this.teams,
+      this.players.map(player => player.id),
+      startingLeaderId
+    )
   }
 
-  playCard(playerId: string, card: Card) {
+  playCard(playerId: string, card: Card): PlayCardProgress {
     if (!this.currentRound) {
       throw new Error("No active round")
     }
 
-    this.currentRound.playCard(playerId, card)
+    const progress = this.currentRound.playCard(playerId, card)
 
-    if (this.currentRound.isComplete()) {
-      const result = this.currentRound.getRoundResult()
-      this.applyRoundResult(result)
+    if (progress.roundResult) {
+      this.applyRoundResult(progress.roundResult)
       this.currentRound = undefined
-      return result
     }
 
-    return undefined
+    return progress
   }
 
   private applyRoundResult(result: RoundResult) {
@@ -60,6 +63,13 @@ export class Game {
       return hand;
     }
     return this.currentRound.getLegalMoves(hand, contract);
+  }
+
+  public getCurrentTrickPlays(): { playerId: string; card: Card }[] {
+    if (!this.currentRound) {
+      return []
+    }
+    return this.currentRound.getCurrentTrick().getPlays()
   }
 
   private getTeamById(teamId: number): Team {

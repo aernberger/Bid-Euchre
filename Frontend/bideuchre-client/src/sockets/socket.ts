@@ -65,23 +65,35 @@ function toFrontendCard(c: { suit: string; face: string }) {
 
 export function registerGameListeners(
     setGameState: (state: any) => void,
-    setMyHand?: (data: { cards: { suit: string; value: string }[]; playableCards: { suit: string; value: string }[] }) => void
+    setMyHand?: (data: { cards: { suit: string; value: string }[]; playableCards: { suit: string; value: string }[] }) => void,
+    onError?: (message: string) => void
 ) {
     const socket = getSocket();
 
-    socket.on("gameUpdate", (state) => {
+    const onGameUpdate = (state: any) => {
         console.log("Game update:", state);
         setGameState(state);
-    });
+    };
 
-    socket.on("yourHand", (payload: { cards?: { suit: string; face: string }[]; playableCards?: { suit: string; face: string }[] } | { suit: string; face: string }[]) => {
+    const onYourHand = (payload: { cards?: { suit: string; face: string }[]; playableCards?: { suit: string; face: string }[] } | { suit: string; face: string }[]) => {
         const isLegacy = Array.isArray(payload);
         const cards = (isLegacy ? payload : (payload.cards ?? [])).map(toFrontendCard);
         const playableCards = isLegacy ? cards : (payload.playableCards ?? []).map(toFrontendCard);
         setMyHand?.({ cards, playableCards });
-    });
+    };
 
-    socket.on("errorMessage", (msg) => {
+    const onErrorMessage = (msg: string) => {
+        onError?.(msg);
         alert(msg);
-    });
+    };
+
+    socket.on("gameUpdate", onGameUpdate);
+    socket.on("yourHand", onYourHand);
+    socket.on("errorMessage", onErrorMessage);
+
+    return () => {
+        socket.off("gameUpdate", onGameUpdate);
+        socket.off("yourHand", onYourHand);
+        socket.off("errorMessage", onErrorMessage);
+    };
 }
