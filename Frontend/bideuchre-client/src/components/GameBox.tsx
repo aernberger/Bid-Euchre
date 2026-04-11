@@ -11,6 +11,8 @@ interface GameBoxProperties {
   leftCount?: number;
   topCount?: number;
   rightCount?: number;
+  opponentNames?: { left: string; top: string; right: string };
+  opponentTurnHighlight?: { left: boolean; top: boolean; right: boolean };
   width?: string;
 }
 
@@ -21,11 +23,24 @@ export default function GameBox({
     leftCount = 6,
     topCount = 6,
     rightCount = 6,
+    opponentNames = { left: "—", top: "—", right: "—" },
+    opponentTurnHighlight = { left: false, top: false, right: false },
     width = "clamp(500px, 90vw, 1000px)",
 }: GameBoxProperties) {
 
   const stackOverlap = 8;
   const sideStackOverlap = 10;
+
+  const nameStyle = (isTheirTurn: boolean): React.CSSProperties => ({
+    fontWeight: 600,
+    fontSize: "clamp(12px, 2vw, 14px)",
+    color: isTheirTurn ? "#2563eb" : "#000000",
+    textAlign: "center",
+    maxWidth: "min(120px, 22vw)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  });
 
   return (
     <WhiteBox
@@ -48,9 +63,29 @@ export default function GameBox({
           boxSizing: "border-box",
         }}
       >
-        {/* TOP OPPONENT - stacked cards */}
-        <div style={{ gridColumn: "2", gridRow: "1", display: "flex", justifyContent: "center" }}>
-          <div style={{ position: "relative", width: "clamp(75px, 8vw, 95px)", height: "clamp(45px, 7vw, 110px)" }}>
+        {/* TOP OPPONENT - name + stacked cards */}
+        <div
+          style={{
+            gridColumn: "2",
+            gridRow: "1",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            justifyContent: "center",
+            minWidth: 0,
+          }}
+        >
+          <span style={nameStyle(opponentTurnHighlight.top)} title={opponentNames.top}>
+            {opponentNames.top}
+          </span>
+          <div
+            style={{
+              position: "relative",
+              width: "clamp(75px, 8vw, 95px)",
+              height: "clamp(45px, 7vw, 110px)",
+            }}
+          >
             {Array.from({ length: topCount }).map((_, i) => (
               <div key={`top-${i}`} style={{ position: "absolute", left: i * stackOverlap, top: 0 }}>
                 <CardBack />
@@ -59,9 +94,30 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* LEFT OPPONENT - stacked cards */}
-        <div style={{ gridColumn: "1", gridRow: "2", display: "flex", justifyContent: "center", alignSelf: "center" }}>
-          <div style={{ position: "relative", width: "clamp(70px, 10vw, 120px)", height: "clamp(70px, 10vw, 130px)" }}>
+        {/* LEFT OPPONENT - name + stacked cards */}
+        <div
+          style={{
+            gridColumn: "1",
+            gridRow: "2",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            alignSelf: "center",
+            justifyContent: "center",
+            minWidth: 0,
+          }}
+        >
+          <span style={nameStyle(opponentTurnHighlight.left)} title={opponentNames.left}>
+            {opponentNames.left}
+          </span>
+          <div
+            style={{
+              position: "relative",
+              width: "clamp(70px, 10vw, 120px)",
+              height: "clamp(70px, 10vw, 130px)",
+            }}
+          >
             {Array.from({ length: leftCount }).map((_, i) => (
               <div key={`left-${i}`} style={{ position: "absolute", left: "50%", top: i * sideStackOverlap, transform: "translateX(-50%) rotate(-90deg)", transformOrigin: "center" }}>
                 <CardBack />
@@ -113,9 +169,30 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* RIGHT OPPONENT - stacked cards */}
-        <div style={{ gridColumn: "3", gridRow: "2", display: "flex", justifyContent: "center", alignSelf: "center" }}>
-          <div style={{ position: "relative", width: "clamp(70px, 10vw, 120px)", height: "clamp(70px, 10vw, 130px)" }}>
+        {/* RIGHT OPPONENT - name + stacked cards */}
+        <div
+          style={{
+            gridColumn: "3",
+            gridRow: "2",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            alignSelf: "center",
+            justifyContent: "center",
+            minWidth: 0,
+          }}
+        >
+          <span style={nameStyle(opponentTurnHighlight.right)} title={opponentNames.right}>
+            {opponentNames.right}
+          </span>
+          <div
+            style={{
+              position: "relative",
+              width: "clamp(70px, 10vw, 120px)",
+              height: "clamp(70px, 10vw, 130px)",
+            }}
+          >
             {Array.from({ length: rightCount }).map((_, i) => (
               <div key={`right-${i}`} style={{ position: "absolute", left: "50%", top: i * sideStackOverlap, transform: "translateX(-50%) rotate(90deg)", transformOrigin: "center" }}>
                 <CardBack />
