@@ -7,6 +7,7 @@ import http from "http";
 import SocketHandler from "./controller/socketHandler.js";
 dotenv.config();
 import supabase from "./supabaseClient.js";
+import authRoutes from "./routes/authRoutes.js";
 
 
 const PORT_NUMBER = process.env.PORT || 8000;
@@ -21,6 +22,7 @@ app.use(cors({
 app.use(express.json());
 
 app.use("/api/games", gameRoutes);
+app.use("/api/auth", authRoutes);
 
 // app.listen(8000, () => {
 //   console.log("Server running on port 8000");
