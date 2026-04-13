@@ -72,6 +72,21 @@ export class Game {
     return this.currentRound.getCurrentTrick().getPlays()
   }
 
+  getTeamGameScores(): { teamId: number; score: number }[] {
+    return this.teams.map((t) => ({
+      teamId: t.teamId,
+      score: t.getGameScore(),
+    }))
+  }
+
+  /** Tricks taken this round by team, or null when not in a playing round. */
+  getTeamTricksThisRound(): Record<number, number> | null {
+    if (!this.currentRound) {
+      return null
+    }
+    return Object.fromEntries(this.currentRound.getTeamTrickCounts())
+  }
+
   private getTeamById(teamId: number): Team {
     const team = this.teams.find(t => t.teamId === teamId)
 
