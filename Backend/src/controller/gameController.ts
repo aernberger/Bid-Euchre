@@ -44,6 +44,8 @@ export class GameController {
       winningBid: this.winningBid,
       playedCards,
       playerHandCounts,
+      teamScores: this.game ? this.game.getTeamGameScores() : [],
+      teamTricksThisRound: this.game?.getTeamTricksThisRound() ?? null,
     };
   }
 
@@ -197,6 +199,7 @@ export class GameController {
     }
 
     this.contract = new Contract(this.highestBid);
+    this.winningBid = this.highestBid;
 
     // determine first player: player to the left of the declarer
     const declarerIndex = this.players.findIndex(

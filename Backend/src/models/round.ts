@@ -105,6 +105,11 @@ export class Round {
     return this.tricks.length === 6
   }
 
+  /** Tricks won so far this round, by team id. */
+  getTeamTrickCounts(): ReadonlyMap<number, number> {
+    return new Map(this.teamTrickCounts)
+  }
+
   getTeamByPlayer(playerId: string) {
     const team = this.teams.find(team =>
       team.hasPlayer(playerId)

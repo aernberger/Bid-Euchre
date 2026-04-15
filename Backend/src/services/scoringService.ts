@@ -47,8 +47,6 @@ export class ScoringEngine {
         pointsAwarded = -contract.tricksRequired;
       }
 
-      declarerTeam.setGameScore(declarerTeam.gameScore + pointsAwarded);
-  
       return new RoundResult(
         declarerTeam.teamId,
         defenderTeam.teamId,

@@ -77,7 +77,8 @@ export default function Game() {
     }, [gameState?.highestBid, gameState?.winningBid]);
 
     const winningBid = React.useMemo(() => {
-        const bid = gameState?.winningBid;
+        // During play, public state keeps highestBid; winningBid is set at bidding end — use either.
+        const bid = gameState?.winningBid ?? gameState?.highestBid;
         if (!bid || bid.tricks === 0) return null;
         const suit = bid.suitType?.toLowerCase?.();
         return {
@@ -85,7 +86,7 @@ export default function Game() {
             number: bid.tricks,
             suit: suit as Suit | undefined,
         };
-    }, [gameState?.winningBid]);
+    }, [gameState?.winningBid, gameState?.highestBid]);
 
     const trumpSuit = React.useMemo(() => {
         if (!winningBid?.suit) return undefined;
@@ -145,6 +146,55 @@ export default function Game() {
             right: !!currentPlayerId && rightId === currentPlayerId,
         };
     }, [gameState?.players, gameState?.phase, myPlayerId, currentPlayerId]);
+
+    // Backend seats: team 1 = indices 0 & 2, team 2 = indices 1 & 3
+    const myTeamId = React.useMemo((): 1 | 2 | null => {
+        const players = gameState?.players ?? [];
+        const idx = players.findIndex((p: { id: string }) => p.id === myPlayerId);
+        if (idx === -1) return null;
+        return idx === 0 || idx === 2 ? 1 : 2;
+    }, [gameState?.players, myPlayerId]);
+
+    const teamScoreMap = React.useMemo(() => {
+        const rows = gameState?.teamScores;
+        const m = new Map<number, number>();
+        if (!Array.isArray(rows)) return m;
+        for (const r of rows as { teamId: number; score: number }[]) {
+            if (r && typeof r.teamId === "number") m.set(r.teamId, r.score ?? 0);
+        }
+        return m;
+    }, [gameState?.teamScores]);
+
+    const tricksThisHand = React.useMemo(() => {
+        const raw = gameState?.teamTricksThisRound;
+        if (!raw || typeof raw !== "object" || myTeamId == null) return null;
+        const t1 = Number((raw as Record<string, unknown>)["1"] ?? 0);
+        const t2 = Number((raw as Record<string, unknown>)["2"] ?? 0);
+        const ours = myTeamId === 1 ? t1 : t2;
+        const theirs = myTeamId === 1 ? t2 : t1;
+        return { ours, theirs };
+    }, [gameState?.teamTricksThisRound, myTeamId]);
+
+    const scoreboard = React.useMemo(() => {
+        const s1 = teamScoreMap.get(1) ?? 0;
+        const s2 = teamScoreMap.get(2) ?? 0;
+        if (!gameState?.teamScores?.length) return null;
+        if (myTeamId == null) {
+            return { leftLabel: "Team 1", left: s1, rightLabel: "Team 2", right: s2 };
+        }
+        return {
+            leftLabel: "Us",
+            left: myTeamId === 1 ? s1 : s2,
+            rightLabel: "Them",
+            right: myTeamId === 1 ? s2 : s1,
+        };
+    }, [gameState?.teamScores, teamScoreMap, myTeamId]);
+
+    const myPlayerName = React.useMemo(() => {
+        const players = gameState?.players ?? [];
+        const p = players.find((x: { id: string }) => x.id === myPlayerId);
+        return p?.name ?? "You";
+    }, [gameState?.players, myPlayerId]);
 
     const handleBidSubmit = (bid: Bid) => {
 
@@ -213,6 +263,32 @@ export default function Game() {
             gap: "12px",
             boxSizing: "border-box",
     }}>
+        {scoreboard ? (
+            <div
+                style={{
+                    width: "clamp(500px, 90vw, 1000px)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "24px",
+                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    color: "#f5f5f5",
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    boxSizing: "border-box",
+                }}
+            >
+                <span>
+                    {scoreboard.leftLabel}: {scoreboard.left}
+                </span>
+                <span style={{ opacity: 0.5 }}>|</span>
+                <span>
+                    {scoreboard.rightLabel}: {scoreboard.right}
+                </span>
+            </div>
+        ) : null}
         {/* TOP AREA */}
     {biddingPhase ? (
             <BiddingBox
@@ -232,6 +308,7 @@ export default function Game() {
                 opponentNames={opponentNames}
                 opponentTurnHighlight={opponentTurnHighlight}
                 width="clamp(500px, 90vw, 1000px)"
+                tricksThisHand={tricksThisHand}
             />
     )}
            
@@ -255,6 +332,15 @@ export default function Game() {
                         {myPlayerName}
                     </span>
                     <span>Score: 0</span>
+                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                    <span style={{ fontWeight: 600 }}>{myPlayerName}</span>
+                    {scoreboard ? (
+                        <span style={{ fontWeight: 600, fontSize: "14px", opacity: 0.85 }}>
+                            {scoreboard.leftLabel} {scoreboard.left} · {scoreboard.rightLabel} {scoreboard.right}
+                        </span>
+                    ) : (
+                        <span style={{ opacity: 0.6 }}>Waiting for game…</span>
+                    )}
                 </div>
                 {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
                 <div style={{display: "flex", gap: "8px", justifyContent: "center", flex: 1}}>
