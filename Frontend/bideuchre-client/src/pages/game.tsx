@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import PlayingCard from "../components/PlayingCard.tsx";
 import WhiteBox from "../components/WhiteBox.tsx";
 import BiddingBox from '../components/BiddingBox.tsx';
@@ -7,13 +7,18 @@ import GameBox from "../components/GameBox.tsx";
 import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket.ts';
 import { Bid, BidType, Suit, Card } from '../types.js';
 
+const contractTypeToBidType: Record<number, BidType> = {
+    0: "Low",
+    1: "Suited",
+    2: "High",
+};
+
 export default function Game() {
     // Player's hand and which cards can be played (from server via yourHand)
     const [cards, setCards] = React.useState<{ suit: string; value: string }[]>([]);
     const [playableCards, setPlayableCards] = React.useState<{ suit: string; value: string }[]>([]);
 
     const [biddingPhase, setBiddingPhase] = React.useState(true);
-    const [playingPhase, setPlayingPhase] = React.useState(false);
     const [gameState, setGameState] = React.useState<any>(null);
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
@@ -21,15 +26,12 @@ export default function Game() {
 
     useEffect(() => {
         connectSocket("dev", undefined, (socketId) => setMyPlayerId(socketId));
-        registerGameListeners(
+        const unregister = registerGameListeners(
             (state: any) => {
             setGameState(state);
-            if (state?.phase === "PLAYING") {
-                setBiddingPhase(false);
-                setPlayingPhase(true);
-            }
-            // Clear center when trick completes so next trick starts empty
-            if (state?.type === "TrickComplete" || state?.newTrick) {
+            setBiddingPhase(state?.phase !== "PLAYING");
+            // Clear center when trick/round ends or when we return to bidding.
+            if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
                 setCurrentTrick([]);
             }
             // Sync currentTrick from server so all players see the same cards (converts backend face→value)
@@ -48,6 +50,9 @@ export default function Game() {
                 setPlayableCards(handData.playableCards);
             }
         );
+        return () => {
+            unregister?.();
+        };
     }, []);
 
     const currentPlayerId =
@@ -62,12 +67,6 @@ export default function Game() {
         myPlayerId === currentPlayerId &&
         gameState?.phase === "PLAYING";
 
-    const contractTypeToBidType: Record<number, BidType> = {
-        0: "Low",
-        1: "Suited",
-        2: "High",
-    };
-
     const currentHighBid: Bid | null = React.useMemo(() => {
         const bid = gameState?.highestBid ?? gameState?.winningBid;
         if (!bid || bid.tricks === 0) return null;
@@ -78,7 +77,8 @@ export default function Game() {
     }, [gameState?.highestBid, gameState?.winningBid]);
 
     const winningBid = React.useMemo(() => {
-        const bid = gameState?.winningBid;
+        // During play, public state keeps highestBid; winningBid is set at bidding end — use either.
+        const bid = gameState?.winningBid ?? gameState?.highestBid;
         if (!bid || bid.tricks === 0) return null;
         const suit = bid.suitType?.toLowerCase?.();
         return {
@@ -86,7 +86,7 @@ export default function Game() {
             number: bid.tricks,
             suit: suit as Suit | undefined,
         };
-    }, [gameState?.winningBid]);
+    }, [gameState?.winningBid, gameState?.highestBid]);
 
     const trumpSuit = React.useMemo(() => {
         if (!winningBid?.suit) return undefined;
@@ -108,6 +108,55 @@ export default function Game() {
             right: rightId ? (counts[rightId] ?? 6) : 6,
         };
     }, [gameState?.players, gameState?.playerHandCounts, myPlayerId]);
+
+    // Backend seats: team 1 = indices 0 & 2, team 2 = indices 1 & 3
+    const myTeamId = React.useMemo((): 1 | 2 | null => {
+        const players = gameState?.players ?? [];
+        const idx = players.findIndex((p: { id: string }) => p.id === myPlayerId);
+        if (idx === -1) return null;
+        return idx === 0 || idx === 2 ? 1 : 2;
+    }, [gameState?.players, myPlayerId]);
+
+    const teamScoreMap = React.useMemo(() => {
+        const rows = gameState?.teamScores;
+        const m = new Map<number, number>();
+        if (!Array.isArray(rows)) return m;
+        for (const r of rows as { teamId: number; score: number }[]) {
+            if (r && typeof r.teamId === "number") m.set(r.teamId, r.score ?? 0);
+        }
+        return m;
+    }, [gameState?.teamScores]);
+
+    const tricksThisHand = React.useMemo(() => {
+        const raw = gameState?.teamTricksThisRound;
+        if (!raw || typeof raw !== "object" || myTeamId == null) return null;
+        const t1 = Number((raw as Record<string, unknown>)["1"] ?? 0);
+        const t2 = Number((raw as Record<string, unknown>)["2"] ?? 0);
+        const ours = myTeamId === 1 ? t1 : t2;
+        const theirs = myTeamId === 1 ? t2 : t1;
+        return { ours, theirs };
+    }, [gameState?.teamTricksThisRound, myTeamId]);
+
+    const scoreboard = React.useMemo(() => {
+        const s1 = teamScoreMap.get(1) ?? 0;
+        const s2 = teamScoreMap.get(2) ?? 0;
+        if (!gameState?.teamScores?.length) return null;
+        if (myTeamId == null) {
+            return { leftLabel: "Team 1", left: s1, rightLabel: "Team 2", right: s2 };
+        }
+        return {
+            leftLabel: "Us",
+            left: myTeamId === 1 ? s1 : s2,
+            rightLabel: "Them",
+            right: myTeamId === 1 ? s2 : s1,
+        };
+    }, [gameState?.teamScores, teamScoreMap, myTeamId]);
+
+    const myPlayerName = React.useMemo(() => {
+        const players = gameState?.players ?? [];
+        const p = players.find((x: { id: string }) => x.id === myPlayerId);
+        return p?.name ?? "You";
+    }, [gameState?.players, myPlayerId]);
 
     const handleBidSubmit = (bid: Bid) => {
 
@@ -150,8 +199,8 @@ export default function Game() {
     const isCardPlayable = (card: { suit: string; value: string }) =>
         playableCards.some((p) => p.suit === card.suit && p.value === card.value);
 
-    // Play a card: only if playable; send to server, optimistically remove from hand and add to center
-    const handlePlayCard = (card: Card, index: number) => {
+    // Play a card by sending to server; hand/table update comes from authoritative socket events.
+    const handlePlayCard = (card: Card) => {
         if (!isCardPlayable(card)) return;
         const valueToFace: Record<string, string> = {
             "9": "9", "10": "10", "J": "Jack", "Q": "Queen", "K": "King", "A": "Ace"
@@ -162,8 +211,6 @@ export default function Game() {
             face: face
         };
         playCard(data);
-        setCards(prev => prev.filter((_, i) => i !== index));
-        setCurrentTrick(prev => [...prev, card]);
     };
 
     return (
@@ -178,6 +225,32 @@ export default function Game() {
             gap: "12px",
             boxSizing: "border-box",
     }}>
+        {scoreboard ? (
+            <div
+                style={{
+                    width: "clamp(500px, 90vw, 1000px)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "24px",
+                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    color: "#f5f5f5",
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    boxSizing: "border-box",
+                }}
+            >
+                <span>
+                    {scoreboard.leftLabel}: {scoreboard.left}
+                </span>
+                <span style={{ opacity: 0.5 }}>|</span>
+                <span>
+                    {scoreboard.rightLabel}: {scoreboard.right}
+                </span>
+            </div>
+        ) : null}
         {/* TOP AREA */}
     {biddingPhase ? (
             <BiddingBox
@@ -195,13 +268,20 @@ export default function Game() {
                 leftCount={opponentCounts.left}
                 rightCount={opponentCounts.right}
                 width="clamp(500px, 90vw, 1000px)"
+                tricksThisHand={tricksThisHand}
             />
     )}
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
-                <div style={{display: "flex", justifyContent: "space-between", width: "100%"}}>
-                    <span>Player 1</span>
-                    <span>Score: 0</span>
+                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                    <span style={{ fontWeight: 600 }}>{myPlayerName}</span>
+                    {scoreboard ? (
+                        <span style={{ fontWeight: 600, fontSize: "14px", opacity: 0.85 }}>
+                            {scoreboard.leftLabel} {scoreboard.left} · {scoreboard.rightLabel} {scoreboard.right}
+                        </span>
+                    ) : (
+                        <span style={{ opacity: 0.6 }}>Waiting for game…</span>
+                    )}
                 </div>
                 {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
                 <div style={{display: "flex", gap: "8px", justifyContent: "center", flex: 1}}>
@@ -211,7 +291,7 @@ export default function Game() {
                             suit={card.suit as Suit}
                             value={card.value}
                             disabled={!isPlayerPlayingTurn || !isCardPlayable(card)}
-                            onClick={() => isPlayerPlayingTurn && isCardPlayable(card) && handlePlayCard({ suit: card.suit as Suit, value: card.value }, index)}
+                            onClick={() => isPlayerPlayingTurn && isCardPlayable(card) && handlePlayCard({ suit: card.suit as Suit, value: card.value })}
                         />
                     ))}
                 </div>

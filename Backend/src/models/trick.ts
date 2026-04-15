@@ -62,6 +62,10 @@ export default class Trick{
         getPlays(): PlayedCard[] {
         return [...this.plays]
         }
+
+        getLeaderId(): string | undefined {
+        return this.leaderId
+        }
 }
 
 

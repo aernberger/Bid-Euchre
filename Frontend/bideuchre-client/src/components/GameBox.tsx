@@ -12,6 +12,8 @@ interface GameBoxProperties {
   topCount?: number;
   rightCount?: number;
   width?: string;
+  /** Tricks taken this hand (playing phase only), from the player’s perspective. */
+  tricksThisHand?: { ours: number; theirs: number } | null;
 }
 
 export default function GameBox({
@@ -22,6 +24,7 @@ export default function GameBox({
     topCount = 6,
     rightCount = 6,
     width = "clamp(500px, 90vw, 1000px)",
+    tricksThisHand = null,
 }: GameBoxProperties) {
 
   const stackOverlap = 8;
@@ -97,6 +100,15 @@ export default function GameBox({
 <div style={{ fontWeight: 700, fontSize: "16px", opacity: 0.9 }}>
   Trump: {trumpSuit ?? "Not set"}
 </div>
+
+          {tricksThisHand ? (
+            <div style={{ fontWeight: 600, fontSize: "15px", opacity: 0.95 }}>
+              Tricks this hand:{" "}
+              <span style={{ color: "#1a5c2e" }}>Us {tricksThisHand.ours}</span>
+              {" · "}
+              <span style={{ color: "#5c1a1a" }}>Them {tricksThisHand.theirs}</span>
+            </div>
+          ) : null}
 
           <div style={{ fontWeight: 600 }}>Current Trick</div>
 
