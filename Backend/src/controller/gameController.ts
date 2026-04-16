@@ -331,19 +331,3 @@ export class GameController {
   }
 
 }
-
-
-
-
-// getSingularBid(playerId: string, tricks: number, contractType: ContractType, suitType?: SuitType, loner: boolean = false){
-//   return new Bid(playerId, tricks, contractType, suitType, loner);
-// }
-
-// getBids(){
-//   for(let i = 0; i < this.players.length; i++) {
-//     bids[i] = this.getSingularBid();
-//   }
-// }
-
-// startRound() {
-//   this.phase = GamePhase.BIDDING;

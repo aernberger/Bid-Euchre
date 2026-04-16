@@ -109,6 +109,44 @@ export default function Game() {
         };
     }, [gameState?.players, gameState?.playerHandCounts, myPlayerId]);
 
+    const opponentNames = React.useMemo(() => {
+        const players = gameState?.players ?? [];
+        const myIndex = players.findIndex((p: { id: string }) => p.id === myPlayerId);
+        if (myIndex === -1 || players.length !== 4) {
+            return { left: "—", top: "—", right: "—" };
+        }
+        const leftP = players[(myIndex + 1) % 4];
+        const topP = players[(myIndex + 2) % 4];
+        const rightP = players[(myIndex + 3) % 4];
+        return {
+            left: leftP?.name ?? "Player",
+            top: topP?.name ?? "Player",
+            right: rightP?.name ?? "Player",
+        };
+    }, [gameState?.players, myPlayerId]);
+
+    const myPlayerName = React.useMemo(() => {
+        const players = gameState?.players ?? [];
+        const me = players.find((p: { id: string }) => p.id === myPlayerId);
+        return me?.name ?? "—";
+    }, [gameState?.players, myPlayerId]);
+
+    const opponentTurnHighlight = React.useMemo(() => {
+        const players = gameState?.players ?? [];
+        const myIndex = players.findIndex((p: { id: string }) => p.id === myPlayerId);
+        if (myIndex === -1 || players.length !== 4 || gameState?.phase !== "PLAYING") {
+            return { left: false, top: false, right: false };
+        }
+        const leftId = players[(myIndex + 1) % 4]?.id;
+        const topId = players[(myIndex + 2) % 4]?.id;
+        const rightId = players[(myIndex + 3) % 4]?.id;
+        return {
+            left: !!currentPlayerId && leftId === currentPlayerId,
+            top: !!currentPlayerId && topId === currentPlayerId,
+            right: !!currentPlayerId && rightId === currentPlayerId,
+        };
+    }, [gameState?.players, gameState?.phase, myPlayerId, currentPlayerId]);
+
     // Backend seats: team 1 = indices 0 & 2, team 2 = indices 1 & 3
     const myTeamId = React.useMemo((): 1 | 2 | null => {
         const players = gameState?.players ?? [];
@@ -267,12 +305,33 @@ export default function Game() {
                 topCount={opponentCounts.top}
                 leftCount={opponentCounts.left}
                 rightCount={opponentCounts.right}
+                opponentNames={opponentNames}
+                opponentTurnHighlight={opponentTurnHighlight}
                 width="clamp(500px, 90vw, 1000px)"
                 tricksThisHand={tricksThisHand}
             />
     )}
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "8px", minWidth: 0 }}>
+                    <span
+                        style={{
+                            fontWeight: 600,
+                            fontSize: "clamp(12px, 2vw, 14px)",
+                            color:
+                                isPlayerBiddingTurn || isPlayerPlayingTurn
+                                    ? "#2563eb"
+                                    : "#000000",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            minWidth: 0,
+                        }}
+                        title={myPlayerName}
+                    >
+                        {myPlayerName}
+                    </span>
+                    <span>Score: 0</span>
                 <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                     <span style={{ fontWeight: 600 }}>{myPlayerName}</span>
                     {scoreboard ? (
