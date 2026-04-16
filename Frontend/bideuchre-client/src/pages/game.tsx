@@ -125,11 +125,11 @@ export default function Game() {
         };
     }, [gameState?.players, myPlayerId]);
 
-    const myPlayerName = React.useMemo(() => {
-        const players = gameState?.players ?? [];
-        const me = players.find((p: { id: string }) => p.id === myPlayerId);
-        return me?.name ?? "—";
-    }, [gameState?.players, myPlayerId]);
+    // const myPlayerName = React.useMemo(() => {
+    //     const players = gameState?.players ?? [];
+    //     const me = players.find((p: { id: string }) => p.id === myPlayerId);
+    //     return me?.name ?? "—";
+    // }, [gameState?.players, myPlayerId]);
 
     const opponentTurnHighlight = React.useMemo(() => {
         const players = gameState?.players ?? [];
@@ -154,6 +154,21 @@ export default function Game() {
         if (idx === -1) return null;
         return idx === 0 || idx === 2 ? 1 : 2;
     }, [gameState?.players, myPlayerId]);
+
+    const contractBidRelative = React.useMemo((): "us" | "them" | null => {
+        const raw = gameState?.winningBid ?? gameState?.highestBid;
+        if (!raw || typeof raw.tricks !== "number" || raw.tricks === 0) return null;
+        const players = gameState?.players ?? [];
+        const declarerId =
+            (typeof gameState?.declarerId === "string" && gameState.declarerId) ||
+            (typeof raw?.bidderId === "string" && raw.bidderId) ||
+            null;
+        if (!declarerId || myTeamId == null) return null;
+        const declarerIdx = players.findIndex((p: { id: string }) => p.id === declarerId);
+        if (declarerIdx === -1) return null;
+        const declarerTeamId: 1 | 2 = declarerIdx === 0 || declarerIdx === 2 ? 1 : 2;
+        return declarerTeamId === myTeamId ? "us" : "them";
+    }, [gameState?.winningBid, gameState?.highestBid, gameState?.declarerId, gameState?.players, myTeamId]);
 
     const teamScoreMap = React.useMemo(() => {
         const rows = gameState?.teamScores;
@@ -302,6 +317,7 @@ export default function Game() {
                 trumpSuit={trumpSuit}
                 currentTrick={currentTrick}
                 bid={winningBid}
+                contractBidRelative={contractBidRelative}
                 topCount={opponentCounts.top}
                 leftCount={opponentCounts.left}
                 rightCount={opponentCounts.right}
@@ -313,11 +329,24 @@ export default function Game() {
     )}
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "8px", minWidth: 0 }}>
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        width: "100%",
+                        gap: "8px",
+                        minWidth: 0,
+                        flexWrap: "wrap",
+                    }}
+                >
                     <span
                         style={{
                             fontWeight: 600,
-                            fontSize: "clamp(12px, 2vw, 14px)",
+                            fontSize:
+                                isPlayerBiddingTurn || isPlayerPlayingTurn
+                                    ? "clamp(13px, 2.2vw, 16px)"
+                                    : "clamp(13px, 2.1vw, 15px)",
                             color:
                                 isPlayerBiddingTurn || isPlayerPlayingTurn
                                     ? "#2563eb"
@@ -331,16 +360,6 @@ export default function Game() {
                     >
                         {myPlayerName}
                     </span>
-                    <span>Score: 0</span>
-                <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                    <span style={{ fontWeight: 600 }}>{myPlayerName}</span>
-                    {scoreboard ? (
-                        <span style={{ fontWeight: 600, fontSize: "14px", opacity: 0.85 }}>
-                            {scoreboard.leftLabel} {scoreboard.left} · {scoreboard.rightLabel} {scoreboard.right}
-                        </span>
-                    ) : (
-                        <span style={{ opacity: 0.6 }}>Waiting for game…</span>
-                    )}
                 </div>
                 {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
                 <div style={{display: "flex", gap: "8px", justifyContent: "center", flex: 1}}>

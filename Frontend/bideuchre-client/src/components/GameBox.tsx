@@ -8,6 +8,7 @@ interface GameBoxProperties {
   trumpSuit?: Suit;
   currentTrick: Card[];
   bid: Bid | null;
+  contractBidRelative?: "us" | "them" | null;
   leftCount?: number;
   topCount?: number;
   rightCount?: number;
@@ -22,6 +23,7 @@ export default function GameBox({
     trumpSuit,
     currentTrick,
     bid,
+    contractBidRelative = null,
     leftCount = 6,
     topCount = 6,
     rightCount = 6,
@@ -31,12 +33,19 @@ export default function GameBox({
     tricksThisHand = null,
 }: GameBoxProperties) {
 
+  const bidHeading =
+    contractBidRelative === "us"
+      ? "Our Bid"
+      : contractBidRelative === "them"
+        ? "Their Bid"
+        : "Bid";
+
   const stackOverlap = 8;
   const sideStackOverlap = 10;
 
   const nameStyle = (isTheirTurn: boolean): React.CSSProperties => ({
     fontWeight: 600,
-    fontSize: "clamp(12px, 2vw, 14px)",
+    fontSize: isTheirTurn ? "clamp(13px, 2.2vw, 16px)" : "clamp(12px, 2vw, 14px)",
     color: isTheirTurn ? "#2563eb" : "#000000",
     textAlign: "center",
     maxWidth: "min(120px, 22vw)",
@@ -150,7 +159,7 @@ export default function GameBox({
           }}
         >
         <div style={{ fontWeight: 800, fontSize: "18px" }}>
-            Bid: {bid ? `${bid.type} ${bid.number}` : "None"}
+            {bidHeading}: {bid ? `${bid.type} ${bid.number}` : "None"}
         </div>
 
 <div style={{ fontWeight: 700, fontSize: "16px", opacity: 0.9 }}>

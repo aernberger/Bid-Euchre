@@ -42,6 +42,7 @@ export class GameController {
       currentPlayerId: currentPlayer?.id ?? null,
       highestBid: this.highestBid,
       winningBid: this.winningBid,
+      declarerId: this.contract?.declarerId ?? null,
       playedCards,
       playerHandCounts,
       teamScores: this.game ? this.game.getTeamGameScores() : [],

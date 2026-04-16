@@ -1,9 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
-import PlayingCard from "./PlayingCard";
 import WhiteBox from "./WhiteBox";
-import { placeBid } from '../sockets/socket';
-import { Bid, BidType, Suit, Card } from '../types';
+import { Bid, BidType, Suit } from '../types';
 
 
 interface BiddingBoxProperties {
@@ -39,41 +37,94 @@ export default function BiddingBox({
     const canConfirm = selectedType !== null && selectedNumber !== null && hasSuit
         && isBidValid(selectedType, selectedNumber, currentHighBid);
 
+    const chipStyle = (active: boolean, disabled = false): React.CSSProperties => ({
+        padding: "8px 12px",
+        borderRadius: "999px",
+        border: disabled
+            ? "1px solid #e5e7eb"
+            : active
+                ? "1px solid #2563eb"
+                : "1px solid #d1d5db",
+        backgroundColor: disabled ? "#f3f4f6" : active ? "#dbeafe" : "#ffffff",
+        color: disabled ? "#9ca3af" : "#1f2937",
+        fontWeight: active ? 700 : 500,
+        opacity: disabled ? 0.65 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+    });
+
     return (
-        <WhiteBox height={"clamp(333px, 45vh, 625px)"}>
-                <div>
-                    <h3>
-                        {isPlayerTurn ? "Your turn to bid" : "Waiting for your turn to bid"}
-                    </h3>
-                    <h3>Current Highest Bid: {currentHighBid ? `${currentHighBid.type} ${currentHighBid.number}` : "None"}</h3>
-                    <div style={{ display: "flex", gap: "8px" }}>
+        <WhiteBox height={"clamp(333px, 45vh, 625px)"} width="clamp(500px, 90vw, 1000px)">
+                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                            width: "100%",
+                            maxWidth: "680px",
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: "clamp(15px, 2vw, 18px)",
+                                fontWeight: 700,
+                                color: isPlayerTurn ? "#1d4ed8" : "#374151",
+                            }}
+                        >
+                            {isPlayerTurn ? "Your turn to bid" : "Waiting for your turn to bid"}
+                        </div>
+                        <div style={{ fontWeight: 600, opacity: 0.9 }}>
+                            Current Highest: {currentHighBid ? `${currentHighBid.type} ${currentHighBid.number}` : "None"}
+                        </div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "680px", alignItems: "center" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Contract Type</div>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
                         {["Low", "Suited", "High"].map((bid) => (
+                            (() => {
+                                const disabled = !isPlayerTurn;
+                                return (
                             <button
                                 key={bid}
-                                disabled={!isPlayerTurn}
+                                disabled={disabled}
                                 onClick={() => setSelectedType(bid as BidType)}
-                                style={{ fontWeight: selectedType === bid ? "bold" : "normal" }}
+                                style={chipStyle(selectedType === bid, disabled)}
                             >
                                 {bid}
                             </button>
+                                );
+                            })()
                         ))}
+                        </div>
                     </div>
+
                     {needsSuit && (
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px" }}>
-                            <span>Choose trump suit:</span>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: "680px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Choose trump suit:</span>
                             {(["hearts", "spades", "diamonds", "clubs"] as Suit[]).map((suit) => (
+                                (() => {
+                                    const disabled = !isPlayerTurn;
+                                    return (
                                 <button
                                     key={suit}
-                                    disabled={!isPlayerTurn}
+                                    disabled={disabled}
                                     onClick={() => setSelectedSuit(suit)}
-                                    style={{ fontWeight: selectedSuit === suit ? "bold" : "normal" }}
+                                    style={chipStyle(selectedSuit === suit, disabled)}
                                 >
                                     {suit.charAt(0).toUpperCase() + suit.slice(1)}
                                 </button>
+                                    );
+                                })()
                             ))}
                         </div>
                     )}
-                    <div style={{ display: "flex", gap: "8px" }}>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "680px", alignItems: "center" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Tricks</div>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
                         {[1, 2, 3, 4, 5, 6].map((num) => {
                             const anyTypeValid = (["Low", "Suited", "High"] as BidType[]).some(
                                 (t) => isBidValid(t, num, currentHighBid)
@@ -83,14 +134,16 @@ export default function BiddingBox({
                                     key={num}
                                     disabled={!isPlayerTurn || !anyTypeValid}
                                     onClick={() => setSelectedNumber(num)}
-                                    style={{ fontWeight: selectedNumber === num ? "bold" : "normal" }}
+                                    style={chipStyle(selectedNumber === num, !isPlayerTurn || !anyTypeValid)}
                                 >
                                     {num}
                                 </button>
                             );
                         })}
+                        </div>
                     </div>
-                    <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "4px", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: "680px" }}>
                         <button
                             disabled={!isPlayerTurn || !canConfirm}
                             onClick={() => {
@@ -102,12 +155,30 @@ export default function BiddingBox({
                                     onBidSubmit(bid);
                                 }
                             }}
+                            style={{
+                                padding: "10px 14px",
+                                borderRadius: "8px",
+                                border: "1px solid #1d4ed8",
+                                backgroundColor: !isPlayerTurn || !canConfirm ? "#bfdbfe" : "#2563eb",
+                                color: "#ffffff",
+                                fontWeight: 700,
+                                cursor: !isPlayerTurn || !canConfirm ? "not-allowed" : "pointer",
+                            }}
                         >
                             Confirm Bid
                         </button>
                         <button
                             disabled={!isPlayerTurn}
                             onClick={() => onBidSubmit({ type: "Low", number: 0 })}
+                            style={{
+                                padding: "10px 14px",
+                                borderRadius: "8px",
+                                border: "1px solid #d1d5db",
+                                backgroundColor: "#ffffff",
+                                color: "#374151",
+                                fontWeight: 600,
+                                cursor: !isPlayerTurn ? "not-allowed" : "pointer",
+                            }}
                         >
                             Pass
                         </button>
