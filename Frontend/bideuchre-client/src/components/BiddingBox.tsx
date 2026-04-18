@@ -8,6 +8,8 @@ interface BiddingBoxProperties {
     currentHighBid: Bid | null;
     onBidSubmit: (bid: Bid) => void;
     isPlayerTurn: boolean;
+    /** Display name of the player whose turn it is to bid (from server `currentPlayerId`). */
+    currentBidderName?: string | null;
 }
 
 const bidTypeRank: Record<BidType, number> = {
@@ -26,7 +28,8 @@ function isBidValid(type: BidType, number: number, currentHighBid: Bid | null): 
 export default function BiddingBox({
     currentHighBid,
     onBidSubmit,
-    isPlayerTurn
+    isPlayerTurn,
+    currentBidderName = null,
 }: BiddingBoxProperties) {
     const [selectedType, setSelectedType] = useState<BidType | null>(null);
     const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
@@ -73,7 +76,11 @@ export default function BiddingBox({
                                 color: isPlayerTurn ? "#1d4ed8" : "#374151",
                             }}
                         >
-                            {isPlayerTurn ? "Your turn to bid" : "Waiting for your turn to bid"}
+                            {isPlayerTurn
+                                ? "Your turn to bid"
+                                : currentBidderName
+                                    ? `${currentBidderName} is bidding`
+                                    : "Waiting for a bid…"}
                         </div>
                         <div style={{ fontWeight: 600, opacity: 0.9 }}>
                             Current Highest: {currentHighBid ? `${currentHighBid.type} ${currentHighBid.number}` : "None"}

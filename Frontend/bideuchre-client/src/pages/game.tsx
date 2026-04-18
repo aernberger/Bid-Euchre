@@ -61,6 +61,13 @@ export default function Game() {
         !!myPlayerId &&
         myPlayerId === currentPlayerId &&
         gameState?.phase === "BIDDING";
+
+    const currentBidderName = React.useMemo(() => {
+        if (gameState?.phase !== "BIDDING" || !currentPlayerId) return null;
+        const players = gameState?.players ?? [];
+        const p = players.find((x: { id: string }) => x.id === currentPlayerId);
+        return typeof p?.name === "string" && p.name.trim() ? p.name.trim() : null;
+    }, [gameState?.phase, gameState?.players, currentPlayerId]);
     // True when it's this player's turn to play a card (playing phase only)
     const isPlayerPlayingTurn =
         !!myPlayerId &&
@@ -310,6 +317,7 @@ export default function Game() {
                 currentHighBid={currentHighBid}
                 onBidSubmit={handleBidSubmit}
                 isPlayerTurn={isPlayerBiddingTurn}
+                currentBidderName={currentBidderName}
             />
             ) : (
             // Pass currentTrick (not fakeTrick) so played cards show in center for all players
