@@ -1,11 +1,11 @@
 import React from 'react';
 import { useEffect } from 'react';
-import PlayingCard from "../components/PlayingCard.tsx";
-import WhiteBox from "../components/WhiteBox.tsx";
-import BiddingBox from '../components/BiddingBox.tsx';
-import GameBox from "../components/GameBox.tsx";
-import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket.ts';
-import { Bid, BidType, Suit, Card } from '../types.js';
+import PlayingCard from '../components/PlayingCard';
+import WhiteBox from '../components/WhiteBox';
+import BiddingBox from '../components/BiddingBox';
+import GameBox from '../components/GameBox';
+import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket';
+import { Bid, BidType, Suit, Card } from '../types';
 
 const contractTypeToBidType: Record<number, BidType> = {
     0: "Low",
@@ -13,7 +13,13 @@ const contractTypeToBidType: Record<number, BidType> = {
     2: "High",
 };
 
-export default function Game() {
+interface GameProps {
+  token: string;
+  user: any;
+  onLogout: () => void;
+}
+
+export default function Game({ token, user, onLogout }: GameProps) {
     // Player's hand and which cards can be played (from server via yourHand)
     const [cards, setCards] = React.useState<{ suit: string; value: string }[]>([]);
     const [playableCards, setPlayableCards] = React.useState<{ suit: string; value: string }[]>([]);
@@ -265,6 +271,33 @@ export default function Game() {
         };
         playCard(data);
     };
+
+    useEffect(() => {
+        // Use the real email/username from the session
+        const displayName = user?.user_metadata?.username || user?.email;
+
+        // Connect with the real JWT token
+        connectSocket(token, displayName, (socketId) => setMyPlayerId(socketId));
+
+        const unregister = registerGameListeners(
+            (state: any) => {
+                setGameState(state);
+                setBiddingPhase(state?.phase !== "PLAYING");
+                if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
+                    setCurrentTrick([]);
+                }
+                // ... existing logic ...
+            },
+            (handData) => {
+                setCards(handData.cards);
+                setPlayableCards(handData.playableCards);
+            }
+        );
+
+        return () => {
+            unregister?.();
+        };
+    }, [token, user]);
 
     return (
         <div style={{

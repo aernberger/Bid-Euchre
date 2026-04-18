@@ -1,4 +1,5 @@
-import {io, Socket} from "socket.io-client";
+// src/sockets/socket.ts
+import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
@@ -7,24 +8,27 @@ export function connectSocket(
     playerName?: string,
     onConnect?: (socketId: string) => void
 ) {
-    console.log("Connecting socket with token: ", token);
-    if (socket) {
-        console.log("Socket already connected");
-        return;
-    }
-    socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8000", {
-        auth: { token },
+    if (socket) return socket;
+
+    // Use environment variable or fallback to localhost
+    const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:8000";
+
+    socket = io(SOCKET_URL, {
+        auth: { token }, // This sends the JWT to the server
         reconnection: true,
         reconnectionAttempts: 5,
     });
 
     socket.on("connect", () => {
+        console.log("Connected to game server as:", playerName);
         socket?.emit("joinGame", { name: playerName || "Player" });
         if (socket?.id) onConnect?.(socket.id);
     });
 
     return socket;
 }
+
+// ... keep getSocket, getMyPlayerId, and your listeners the same ...
 
 export function getSocket() {
     if (!socket) throw new Error("Socket not connected");
