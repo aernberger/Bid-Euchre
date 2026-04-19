@@ -88,7 +88,7 @@ private onPlaceBid(socket: Socket, data: any) {
             data.tricks,
             data.contractType,
             data.suitType,
-            data.loner
+            Boolean(data.loner)
         );
 
         const response = this.controller.placeBid(bid);
