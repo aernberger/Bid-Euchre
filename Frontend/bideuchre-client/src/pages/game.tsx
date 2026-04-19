@@ -5,6 +5,7 @@ import WhiteBox from "../components/WhiteBox.tsx";
 import BiddingBox from '../components/BiddingBox.tsx';
 import GameBox from "../components/GameBox.tsx";
 import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket.ts';
+import { statPill } from '../ui/statPill';
 import { Bid, BidType, Suit, Card } from '../types.js';
 
 const contractTypeToBidType: Record<number, BidType> = {
@@ -74,12 +75,23 @@ export default function Game() {
         myPlayerId === currentPlayerId &&
         gameState?.phase === "PLAYING";
 
+    const bidTurnStatusTone = React.useMemo((): "blue" | "red" | "neutral" => {
+        if (gameState?.phase !== "BIDDING" || !currentPlayerId || !myPlayerId) return "neutral";
+        if (currentPlayerId === myPlayerId) return "blue";
+        const players = gameState?.players ?? [];
+        const myIdx = players.findIndex((p: { id: string }) => p.id === myPlayerId);
+        const curIdx = players.findIndex((p: { id: string }) => p.id === currentPlayerId);
+        if (myIdx === -1 || curIdx === -1) return "neutral";
+        return myIdx % 2 === curIdx % 2 ? "blue" : "red";
+    }, [gameState?.phase, gameState?.players, currentPlayerId, myPlayerId]);
+
     const currentHighBid: Bid | null = React.useMemo(() => {
         const bid = gameState?.highestBid ?? gameState?.winningBid;
         if (!bid || bid.tricks === 0) return null;
         return {
             type: contractTypeToBidType[bid.contractType] ?? "Low",
             number: bid.tricks,
+            loner: Boolean(bid.loner),
         };
     }, [gameState?.highestBid, gameState?.winningBid]);
 
@@ -92,13 +104,9 @@ export default function Game() {
             type: (contractTypeToBidType[bid.contractType] ?? "Low") as BidType,
             number: bid.tricks,
             suit: suit as Suit | undefined,
+            loner: Boolean(bid.loner),
         };
     }, [gameState?.winningBid, gameState?.highestBid]);
-
-    const trumpSuit = React.useMemo(() => {
-        if (!winningBid?.suit) return undefined;
-        return winningBid.suit as Suit;
-    }, [winningBid]);
 
     // Opponent card counts: left, top, right (you are at bottom). Players are in seat order [0,1,2,3].
     const opponentCounts = React.useMemo(() => {
@@ -138,21 +146,38 @@ export default function Game() {
     //     return me?.name ?? "—";
     // }, [gameState?.players, myPlayerId]);
 
-    const opponentTurnHighlight = React.useMemo(() => {
+    const seatTurnTone = React.useMemo(() => {
         const players = gameState?.players ?? [];
         const myIndex = players.findIndex((p: { id: string }) => p.id === myPlayerId);
-        if (myIndex === -1 || players.length !== 4 || gameState?.phase !== "PLAYING") {
-            return { left: false, top: false, right: false };
+        if (
+            myIndex === -1 ||
+            players.length !== 4 ||
+            gameState?.phase !== "PLAYING" ||
+            !currentPlayerId
+        ) {
+            return { left: "idle" as const, top: "idle" as const, right: "idle" as const };
         }
+        const curIdx = players.findIndex((p: { id: string }) => p.id === currentPlayerId);
+        const currentIsAlly = curIdx !== -1 && myIndex % 2 === curIdx % 2;
+        const toneForSeat = (seatPlayerId: string | undefined) => {
+            if (!seatPlayerId || seatPlayerId !== currentPlayerId) return "idle" as const;
+            return currentIsAlly ? ("blue" as const) : ("red" as const);
+        };
         const leftId = players[(myIndex + 1) % 4]?.id;
         const topId = players[(myIndex + 2) % 4]?.id;
         const rightId = players[(myIndex + 3) % 4]?.id;
         return {
-            left: !!currentPlayerId && leftId === currentPlayerId,
-            top: !!currentPlayerId && topId === currentPlayerId,
-            right: !!currentPlayerId && rightId === currentPlayerId,
+            left: toneForSeat(leftId),
+            top: toneForSeat(topId),
+            right: toneForSeat(rightId),
         };
     }, [gameState?.players, gameState?.phase, myPlayerId, currentPlayerId]);
+
+    const myNameHighlighted =
+        !!myPlayerId &&
+        !!currentPlayerId &&
+        myPlayerId === currentPlayerId &&
+        (gameState?.phase === "BIDDING" || gameState?.phase === "PLAYING");
 
     // Backend seats: team 1 = indices 0 & 2, team 2 = indices 1 & 3
     const myTeamId = React.useMemo((): 1 | 2 | null => {
@@ -176,6 +201,21 @@ export default function Game() {
         const declarerTeamId: 1 | 2 = declarerIdx === 0 || declarerIdx === 2 ? 1 : 2;
         return declarerTeamId === myTeamId ? "us" : "them";
     }, [gameState?.winningBid, gameState?.highestBid, gameState?.declarerId, gameState?.players, myTeamId]);
+
+    const declarerDisplayName = React.useMemo((): string | null => {
+        const raw = gameState?.winningBid ?? gameState?.highestBid;
+        const fromBid =
+            raw && typeof raw === "object" && typeof (raw as { bidderId?: unknown }).bidderId === "string"
+                ? (raw as { bidderId: string }).bidderId
+                : null;
+        const declarerId =
+            (typeof gameState?.declarerId === "string" && gameState.declarerId) || fromBid;
+        if (!declarerId) return null;
+        const players = gameState?.players ?? [];
+        const p = players.find((x: { id: string }) => x.id === declarerId);
+        const n = typeof p?.name === "string" && p.name.trim() ? p.name.trim() : null;
+        return n;
+    }, [gameState?.declarerId, gameState?.winningBid, gameState?.highestBid, gameState?.players]);
 
     const teamScoreMap = React.useMemo(() => {
         const rows = gameState?.teamScores;
@@ -205,9 +245,9 @@ export default function Game() {
             return { leftLabel: "Team 1", left: s1, rightLabel: "Team 2", right: s2 };
         }
         return {
-            leftLabel: "Us",
+            leftLabel: "Blue team",
             left: myTeamId === 1 ? s1 : s2,
-            rightLabel: "Them",
+            rightLabel: "Red team",
             right: myTeamId === 1 ? s2 : s1,
         };
     }, [gameState?.teamScores, teamScoreMap, myTeamId]);
@@ -243,7 +283,7 @@ export default function Game() {
         const data: { tricks: number; contractType: number; suitType?: string; loner: boolean } = {
             tricks: bid.number,
             contractType: contractTypeMap[bid.type],
-            loner: false
+            loner: bid.number === 6 && Boolean(bid.loner),
         };
 
         if (bid.type === "Suited" && bid.suit) {
@@ -292,23 +332,33 @@ export default function Game() {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    gap: "24px",
+                    flexWrap: "wrap",
+                    gap: "10px",
                     padding: "10px 16px",
                     borderRadius: "10px",
                     backgroundColor: "rgba(0,0,0,0.2)",
-                    color: "#f5f5f5",
-                    fontSize: "16px",
-                    fontWeight: 700,
                     boxSizing: "border-box",
                 }}
             >
-                <span>
-                    {scoreboard.leftLabel}: {scoreboard.left}
-                </span>
-                <span style={{ opacity: 0.5 }}>|</span>
-                <span>
-                    {scoreboard.rightLabel}: {scoreboard.right}
-                </span>
+                {myTeamId == null ? (
+                    <>
+                        <span style={statPill("neutral", "md")}>
+                            {scoreboard.leftLabel}: {scoreboard.left}
+                        </span>
+                        <span style={statPill("neutral", "md")}>
+                            {scoreboard.rightLabel}: {scoreboard.right}
+                        </span>
+                    </>
+                ) : (
+                    <>
+                        <span style={statPill("blue", "md")}>
+                            {scoreboard.leftLabel}: {scoreboard.left}
+                        </span>
+                        <span style={statPill("red", "md")}>
+                            {scoreboard.rightLabel}: {scoreboard.right}
+                        </span>
+                    </>
+                )}
             </div>
         ) : null}
         {/* TOP AREA */}
@@ -318,19 +368,20 @@ export default function Game() {
                 onBidSubmit={handleBidSubmit}
                 isPlayerTurn={isPlayerBiddingTurn}
                 currentBidderName={currentBidderName}
+                turnStatusTone={bidTurnStatusTone}
             />
             ) : (
             // Pass currentTrick (not fakeTrick) so played cards show in center for all players
             <GameBox
-                trumpSuit={trumpSuit}
                 currentTrick={currentTrick}
                 bid={winningBid}
+                declarerName={declarerDisplayName}
                 contractBidRelative={contractBidRelative}
                 topCount={opponentCounts.top}
                 leftCount={opponentCounts.left}
                 rightCount={opponentCounts.right}
                 opponentNames={opponentNames}
-                opponentTurnHighlight={opponentTurnHighlight}
+                seatTurnTone={seatTurnTone}
                 width="clamp(500px, 90vw, 1000px)"
                 tricksThisHand={tricksThisHand}
             />
@@ -339,47 +390,60 @@ export default function Game() {
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
                 <div
                     style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        position: "relative",
                         width: "100%",
+                        flex: 1,
+                        minHeight: 0,
+                        alignSelf: "stretch",
+                        display: "flex",
+                        flexDirection: "column",
                         gap: "8px",
-                        minWidth: 0,
-                        flexWrap: "wrap",
                     }}
                 >
-                    <span
+                    <div style={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
+                        <span style={statPill("blue", "xs")}>Blue team</span>
+                    </div>
+                    <div
                         style={{
-                            fontWeight: 600,
-                            fontSize:
-                                isPlayerBiddingTurn || isPlayerPlayingTurn
-                                    ? "clamp(13px, 2.2vw, 16px)"
-                                    : "clamp(13px, 2.1vw, 15px)",
-                            color:
-                                isPlayerBiddingTurn || isPlayerPlayingTurn
-                                    ? "#2563eb"
-                                    : "#000000",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            width: "100%",
+                            gap: "8px",
                             minWidth: 0,
+                            flexWrap: "wrap",
+                            paddingRight: "88px",
+                            boxSizing: "border-box",
                         }}
-                        title={myPlayerName}
                     >
-                        {myPlayerName}
-                    </span>
-                </div>
-                {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
-                <div style={{display: "flex", gap: "8px", justifyContent: "center", flex: 1}}>
-                    {cards.map((card, index) => (
-                        <PlayingCard
-                            key={`${card.suit}-${card.value}-${index}`}
-                            suit={card.suit as Suit}
-                            value={card.value}
-                            disabled={!isPlayerPlayingTurn || !isCardPlayable(card)}
-                            onClick={() => isPlayerPlayingTurn && isCardPlayable(card) && handlePlayCard({ suit: card.suit as Suit, value: card.value })}
-                        />
-                    ))}
+                        <span
+                            style={statPill(myNameHighlighted ? "blue" : "neutral", "md", {
+                                fontWeight: 600,
+                                color: "#2563eb",
+                                minWidth: 0,
+                                maxWidth: "min(100%, 280px)",
+                            })}
+                            title={myPlayerName}
+                        >
+                            {myPlayerName}
+                        </span>
+                    </div>
+                    {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
+                    <div style={{ display: "flex", gap: "8px", justifyContent: "center", flex: 1 }}>
+                        {cards.map((card, index) => (
+                            <PlayingCard
+                                key={`${card.suit}-${card.value}-${index}`}
+                                suit={card.suit as Suit}
+                                value={card.value}
+                                disabled={!isPlayerPlayingTurn || !isCardPlayable(card)}
+                                onClick={() =>
+                                    isPlayerPlayingTurn &&
+                                    isCardPlayable(card) &&
+                                    handlePlayCard({ suit: card.suit as Suit, value: card.value })
+                                }
+                            />
+                        ))}
+                    </div>
                 </div>
             </WhiteBox>
         </div>

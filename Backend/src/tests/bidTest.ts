@@ -90,6 +90,14 @@ test('beats should return false for equal bids', function() {
     assert.strictEqual(bid1.beats(bid2), false, "Equal bids should not beat each other");
 })
 
+test('six-trick loner beats same contract six without loner', function() {
+    const lonerSix = new Bid(bidderId, 6, ContractType.HIGH, undefined, true);
+    const partnerSix = new Bid('p2', 6, ContractType.HIGH, undefined, false);
+    assert.strictEqual(lonerSix.compareTo(partnerSix), 1, "Loner should compare higher");
+    assert.strictEqual(lonerSix.beats(partnerSix), true, "Loner six should beat non-loner six");
+    assert.strictEqual(partnerSix.beats(lonerSix), false, "Non-loner should not beat loner");
+})
+
 test('beats should return false for equal suits', function() {
     const bid1 = new Bid(bidderId, 4, ContractType.SUITED, Suit.SPADES, false);
     const bid2 = new Bid(bidderId, 4, ContractType.SUITED, Suit.SPADES, false);

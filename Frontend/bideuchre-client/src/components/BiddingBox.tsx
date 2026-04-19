@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import WhiteBox from "./WhiteBox";
+import { statPill } from "../ui/statPill";
 import { Bid, BidType, Suit } from '../types';
 
 
@@ -10,6 +11,8 @@ interface BiddingBoxProperties {
     isPlayerTurn: boolean;
     /** Display name of the player whose turn it is to bid (from server `currentPlayerId`). */
     currentBidderName?: string | null;
+    /** Current bidder only: blue = you or partner, red = opponent, neutral = waiting / unknown. */
+    turnStatusTone?: "blue" | "red" | "neutral";
 }
 
 const bidTypeRank: Record<BidType, number> = {
@@ -30,10 +33,16 @@ export default function BiddingBox({
     onBidSubmit,
     isPlayerTurn,
     currentBidderName = null,
+    turnStatusTone = "neutral",
 }: BiddingBoxProperties) {
     const [selectedType, setSelectedType] = useState<BidType | null>(null);
     const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
     const [selectedSuit, setSelectedSuit] = useState<Suit | null>(null);
+    /** Six-bid only: play without partner (backend scoring). */
+    const [wantLoner, setWantLoner] = useState(false);
+
+    const statusPillVariant: "blue" | "red" | "neutral" =
+        turnStatusTone === "blue" ? "blue" : turnStatusTone === "red" ? "red" : "neutral";
 
     const needsSuit = selectedType === "Suited";
     const hasSuit = !needsSuit || selectedSuit !== null;
@@ -69,22 +78,27 @@ export default function BiddingBox({
                             maxWidth: "680px",
                         }}
                     >
-                        <div
-                            style={{
-                                fontSize: "clamp(15px, 2vw, 18px)",
-                                fontWeight: 700,
-                                color: isPlayerTurn ? "#1d4ed8" : "#374151",
-                            }}
+                        <span
+                            style={statPill(statusPillVariant, "lg", {
+                                whiteSpace: "normal",
+                                textAlign: "left",
+                                maxWidth: "min(100%, 360px)",
+                            })}
                         >
                             {isPlayerTurn
                                 ? "Your turn to bid"
                                 : currentBidderName
                                     ? `${currentBidderName} is bidding`
                                     : "Waiting for a bid…"}
-                        </div>
-                        <div style={{ fontWeight: 600, opacity: 0.9 }}>
-                            Current Highest: {currentHighBid ? `${currentHighBid.type} ${currentHighBid.number}` : "None"}
-                        </div>
+                        </span>
+                        <span style={statPill("neutral", "sm", { fontWeight: 600 })}>
+                            Current highest:{" "}
+                            {currentHighBid
+                                ? `${currentHighBid.type} ${currentHighBid.number}${
+                                      currentHighBid.loner && currentHighBid.number === 6 ? " (Loner)" : ""
+                                  }`
+                                : "None"}
+                        </span>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "680px", alignItems: "center" }}>
@@ -140,7 +154,10 @@ export default function BiddingBox({
                                 <button
                                     key={num}
                                     disabled={!isPlayerTurn || !anyTypeValid}
-                                    onClick={() => setSelectedNumber(num)}
+                                    onClick={() => {
+                                        setSelectedNumber(num);
+                                        if (num !== 6) setWantLoner(false);
+                                    }}
                                     style={chipStyle(selectedNumber === num, !isPlayerTurn || !anyTypeValid)}
                                 >
                                     {num}
@@ -150,12 +167,51 @@ export default function BiddingBox({
                         </div>
                     </div>
 
+                    {selectedNumber === 6 && isPlayerTurn ? (
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                                width: "100%",
+                                maxWidth: "680px",
+                                alignItems: "center",
+                            }}
+                        >
+                            <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>
+                                Six tricks — play without your partner?
+                            </div>
+                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                                <button
+                                    type="button"
+                                    disabled={!isPlayerTurn}
+                                    onClick={() => setWantLoner(false)}
+                                    style={chipStyle(!wantLoner, !isPlayerTurn)}
+                                >
+                                    With partner
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={!isPlayerTurn}
+                                    onClick={() => setWantLoner(true)}
+                                    style={chipStyle(wantLoner, !isPlayerTurn)}
+                                >
+                                    Go alone (loner)
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+
                     <div style={{ display: "flex", gap: "10px", marginTop: "4px", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: "680px" }}>
                         <button
                             disabled={!isPlayerTurn || !canConfirm}
                             onClick={() => {
                                 if (selectedType && selectedNumber) {
-                                    const bid: Bid = { type: selectedType, number: selectedNumber };
+                                    const bid: Bid = {
+                                        type: selectedType,
+                                        number: selectedNumber,
+                                        loner: selectedNumber === 6 && wantLoner,
+                                    };
                                     if (selectedType === "Suited" && selectedSuit) {
                                         bid.suit = selectedSuit;
                                     }
@@ -176,7 +232,10 @@ export default function BiddingBox({
                         </button>
                         <button
                             disabled={!isPlayerTurn}
-                            onClick={() => onBidSubmit({ type: "Low", number: 0 })}
+                            onClick={() => {
+                                setWantLoner(false);
+                                onBidSubmit({ type: "Low", number: 0 });
+                            }}
                             style={{
                                 padding: "10px 14px",
                                 borderRadius: "8px",

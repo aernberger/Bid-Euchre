@@ -2,57 +2,81 @@ import React from "react";
 import WhiteBox from "./WhiteBox";
 import PlayingCard from "./PlayingCard";
 import CardBack from "./CardBack";
-import { Bid, BidType, Suit, Card } from '../types';
+import { statPill } from "../ui/statPill";
+import { Bid, Card } from '../types';
 
 interface GameBoxProperties {
-  trumpSuit?: Suit;
   currentTrick: Card[];
   bid: Bid | null;
+  /** Declarer display name for the contract line (pill color still uses contractBidRelative). */
+  declarerName?: string | null;
   contractBidRelative?: "us" | "them" | null;
   leftCount?: number;
   topCount?: number;
   rightCount?: number;
   opponentNames?: { left: string; top: string; right: string };
-  opponentTurnHighlight?: { left: boolean; top: boolean; right: boolean };
+  /** Only the current player’s seat is colored: blue = you/partner, red = opponent. */
+  seatTurnTone?: { left: "idle" | "red" | "blue"; top: "idle" | "blue" | "red"; right: "idle" | "red" | "blue" };
   width?: string;
   /** Tricks taken this hand (playing phase only), from the player’s perspective. */
   tricksThisHand?: { ours: number; theirs: number } | null;
 }
 
+function possessiveBidHeading(name: string | null | undefined): string {
+  const t = typeof name === "string" ? name.trim() : "";
+  if (!t) return "Bid";
+  return /s$/i.test(t) ? `${t}' bid` : `${t}'s bid`;
+}
+
+function formatBidSummary(bid: Bid | null): string {
+  if (!bid) return "None";
+  const lonerTag = bid.loner && bid.number === 6 ? " (Loner)" : "";
+  if (bid.type === "Suited" && bid.suit) {
+    const s = bid.suit;
+    const suitWord = s.charAt(0).toUpperCase() + s.slice(1);
+    return `${suitWord} ${bid.number}${lonerTag}`;
+  }
+  return `${bid.type} ${bid.number}${lonerTag}`;
+}
+
 export default function GameBox({
-    trumpSuit,
     currentTrick,
     bid,
+    declarerName = null,
     contractBidRelative = null,
     leftCount = 6,
     topCount = 6,
     rightCount = 6,
     opponentNames = { left: "—", top: "—", right: "—" },
-    opponentTurnHighlight = { left: false, top: false, right: false },
+    seatTurnTone = { left: "idle", top: "idle", right: "idle" },
     width = "clamp(500px, 90vw, 1000px)",
     tricksThisHand = null,
 }: GameBoxProperties) {
 
-  const bidHeading =
-    contractBidRelative === "us"
-      ? "Our Bid"
-      : contractBidRelative === "them"
-        ? "Their Bid"
-        : "Bid";
+  const bidHeading = possessiveBidHeading(declarerName);
+
+  const bidPillVariant: "blue" | "red" | "neutral" =
+    contractBidRelative === "us" ? "blue" : contractBidRelative === "them" ? "red" : "neutral";
 
   const stackOverlap = 8;
   const sideStackOverlap = 10;
 
-  const nameStyle = (isTheirTurn: boolean): React.CSSProperties => ({
-    fontWeight: 600,
-    fontSize: isTheirTurn ? "clamp(13px, 2.2vw, 16px)" : "clamp(12px, 2vw, 14px)",
-    color: isTheirTurn ? "#2563eb" : "#000000",
-    textAlign: "center",
-    maxWidth: "min(120px, 22vw)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  });
+  const namePillStyle = (
+    seat: "left" | "top" | "right",
+    tone: "idle" | "blue" | "red"
+  ): React.CSSProperties => {
+    const isBlueSeat = seat === "top";
+    const activeTone = isBlueSeat ? "blue" : "red";
+    const variant = tone === activeTone ? activeTone : "neutral";
+    const size = tone === activeTone ? "md" : "sm";
+    const textColor = isBlueSeat ? "#2563eb" : "#dc2626";
+    return statPill(variant, size, {
+      fontWeight: 600,
+      color: textColor,
+      textAlign: "center",
+      maxWidth: "min(120px, 22vw)",
+    });
+  };
 
   return (
     <WhiteBox
@@ -88,7 +112,7 @@ export default function GameBox({
             minWidth: 0,
           }}
         >
-          <span style={nameStyle(opponentTurnHighlight.top)} title={opponentNames.top}>
+          <span style={namePillStyle("top", seatTurnTone.top)} title={opponentNames.top}>
             {opponentNames.top}
           </span>
           <div
@@ -120,7 +144,7 @@ export default function GameBox({
             minWidth: 0,
           }}
         >
-          <span style={nameStyle(opponentTurnHighlight.left)} title={opponentNames.left}>
+          <span style={namePillStyle("left", seatTurnTone.left)} title={opponentNames.left}>
             {opponentNames.left}
           </span>
           <div
@@ -138,7 +162,7 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* CENTER (this is where the trump suit will be displayed) this will be col 2 middle and row 2 middle */}
+        {/* CENTER — contract + trick in progress */}
         <div
           style={{
             gridColumn: "2",
@@ -147,8 +171,9 @@ export default function GameBox({
             height: "100%",
             minWidth: 0,
             overflow: "hidden",
-            border: "1px solid #ddd",
+            border: "1px solid #e5e7eb",
             borderRadius: "10px",
+            backgroundColor: "#fafafa",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -158,28 +183,56 @@ export default function GameBox({
             boxSizing: "border-box",
           }}
         >
-        <div style={{ fontWeight: 800, fontSize: "18px" }}>
-            {bidHeading}: {bid ? `${bid.type} ${bid.number}` : "None"}
+        <div
+          style={statPill(bidPillVariant, "lg", {
+            fontWeight: 800,
+            whiteSpace: "normal",
+            textAlign: "center",
+            maxWidth: "min(100%, 320px)",
+          })}
+        >
+            {bidHeading}: {formatBidSummary(bid)}
         </div>
 
-<div style={{ fontWeight: 700, fontSize: "16px", opacity: 0.9 }}>
-  Trump: {trumpSuit ?? "Not set"}
-</div>
-
           {tricksThisHand ? (
-            <div style={{ fontWeight: 600, fontSize: "15px", opacity: 0.95 }}>
-              Tricks this hand:{" "}
-              <span style={{ color: "#1a5c2e" }}>Us {tricksThisHand.ours}</span>
-              {" · "}
-              <span style={{ color: "#5c1a1a" }}>Them {tricksThisHand.theirs}</span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "8px",
+                width: "100%",
+                maxWidth: "100%",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: "#6b7280",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                Tricks this hand
+              </span>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span style={statPill("blue", "md")}>Blue team {tricksThisHand.ours}</span>
+                <span style={statPill("red", "md")}>Red team {tricksThisHand.theirs}</span>
+              </div>
             </div>
           ) : null}
 
-          <div style={{ fontWeight: 600 }}>Current Trick</div>
-
           <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "center", flexWrap: "wrap", minWidth: 0, maxWidth: "100%" }}>
             {currentTrick.length === 0 ? (
-              <div style={{ opacity: 0.6 }}>(No cards played yet)</div>
+              <span style={statPill("neutral", "sm", { fontWeight: 600 })}>(No cards played yet)</span>
             ) : (
               currentTrick.map((card, idx) => (
                 <div key={`trick-${idx}`}>
@@ -204,7 +257,7 @@ export default function GameBox({
             minWidth: 0,
           }}
         >
-          <span style={nameStyle(opponentTurnHighlight.right)} title={opponentNames.right}>
+          <span style={namePillStyle("right", seatTurnTone.right)} title={opponentNames.right}>
             {opponentNames.right}
           </span>
           <div
