@@ -16,13 +16,13 @@ const oppAId = 'player3';
 const oppBId = 'player4';
 
 const declarerTeam = new Team(
-  new Player(declarerId, 'Declarer', 'supabaseId1'),
-  new Player(partnerId, 'Partner', 'supabaseId2'),
+  new Player(declarerId, 'Declarer'),
+  new Player(partnerId, 'Partner'),
   0
 );
 const defenderTeam = new Team(
-  new Player(oppAId, 'Opp A', 'supabaseId3'),
-  new Player(oppBId, 'Opp B', 'supabaseId4'),
+  new Player(oppAId, 'Opp A'),
+  new Player(oppBId, 'Opp B'),
   1
 );
 const teams: Team[] = [declarerTeam, defenderTeam];
@@ -102,8 +102,8 @@ test('throws when declarer is not on any team', function () {
 
 test('throws when defender team cannot be resolved', function () {
   const orphanTeam = new Team(
-    new Player(declarerId, 'Declarer', 'supabaseId1'),
-    new Player(partnerId, 'Partner', 'supabaseId2'),
+    new Player(declarerId, 'Declarer'),
+    new Player(partnerId, 'Partner'),
   0
   );
   const contract = new Contract(new Bid(declarerId, 3, ContractType.HIGH, undefined, false));

@@ -6,10 +6,9 @@ import Team from "./team.js"
 import Trick from "./trick.js"
 
 export interface PlayCardProgress {
-  roundResult: RoundResult | null;
-  trickCompleted: boolean;
-  nextPlayerId: string;
-  trickWinnerId: string | null; 
+  roundResult: RoundResult | null
+  trickCompleted: boolean
+  nextPlayerId: string
 }
 
 export class Round {
@@ -22,6 +21,7 @@ export class Round {
     private readonly teams: Team[],
     private readonly turnOrder: string[],
     private readonly startingLeaderId?: string
+
   ) {
     teams.forEach(team => {
       this.teamTrickCounts.set(team.teamId, 0)
@@ -31,40 +31,37 @@ export class Round {
   }
 
   playCard(playerId: string, card: Card): PlayCardProgress {
-    this.currentTrick.playCard(playerId, card);
-    const trickLeaderId = this.currentTrick.getLeaderId() ?? playerId;
+    this.currentTrick.playCard(playerId, card)
+    const trickLeaderId = this.currentTrick.getLeaderId() ?? playerId
 
     if (this.currentTrick.isComplete()) {
-        const winnerId = this.currentTrick.getWinner();
-        this.recordTrickWin(winnerId);
-        this.tricks.push(this.currentTrick);
-        this.currentTrick = this.createNewTrick(winnerId);
+      const winnerId = this.currentTrick.getWinner()
+      this.recordTrickWin(winnerId)
 
-        if (this.isComplete()) {
-            return {
-                roundResult: this.getRoundResult(),
-                trickCompleted: true,
-                nextPlayerId: winnerId,
-                trickWinnerId: winnerId,
-            };
-        }
+      this.tricks.push(this.currentTrick)
+      this.currentTrick = this.createNewTrick(winnerId)
+
+      if (this.isComplete()) {
         return {
-            roundResult: null,
-            trickCompleted: true,
-            nextPlayerId: winnerId,
-            trickWinnerId: winnerId,
-        };
+          roundResult: this.getRoundResult(),
+          trickCompleted: true,
+          nextPlayerId: winnerId,
+        }
+      }
+      return {
+        roundResult: null,
+        trickCompleted: true,
+        nextPlayerId: winnerId,
+      }
     }
 
-    const playsSoFar = this.currentTrick.getPlays().length;
-    const nextPlayerId = this.getPlayerByOffset(trickLeaderId, playsSoFar);
-    
+    const playsSoFar = this.currentTrick.getPlays().length
+    const nextPlayerId = this.getPlayerByOffset(trickLeaderId, playsSoFar)
     return {
-        roundResult: null,
-        trickCompleted: false,
-        nextPlayerId,
-        trickWinnerId: null,
-    };
+      roundResult: null,
+      trickCompleted: false,
+      nextPlayerId,
+    }
   }
 
   public getCurrentTrick(): Trick {
@@ -108,6 +105,7 @@ export class Round {
     return this.tricks.length === 6
   }
 
+  /** Tricks won so far this round, by team id. */
   getTeamTrickCounts(): ReadonlyMap<number, number> {
     return new Map(this.teamTrickCounts)
   }
@@ -131,4 +129,40 @@ export class Round {
       this.teamTrickCounts
     );
   }
+
+  // getRoundResult(): RoundResult {
+  //     const declarerTeam = this.getTeamByPlayer(this.contract.declarerId)
+  //     const defenderTeam = this.teams.find(team => team !== declarerTeam)
+  //     if (!defenderTeam) {
+  //         throw new Error("Could not determine opposing team")
+  //     }
+
+  //     const declarerTricks = this.teamTrickCounts.get(declarerTeam.teamId)!
+  //     const defenderTricks = this.teamTrickCounts.get(defenderTeam.teamId)!
+  //     const contractMade =
+  //       declarerTricks >= this.contract.tricksRequired
+
+  //     let pointsAwardedToTeamId: number
+  //     let pointsAwarded: number
+
+  //     if (contractMade) {
+  //       pointsAwardedToTeamId = declarerTeam.teamId
+  //       pointsAwarded = declarerTricks
+  //     } else {
+  //       pointsAwardedToTeamId = defenderTeam.teamId
+  //       pointsAwarded = this.contract.tricksRequired
+  //     }
+
+  //     return new RoundResult(
+  //       declarerTeam.teamId,
+  //       defenderTeam.teamId,
+  //       declarerTricks,
+  //       defenderTricks,
+  //       contractMade,
+  //       pointsAwardedToTeamId,
+  //       pointsAwarded,
+  //       this.contract.loner,
+  //       this.contract.isMoonShot()
+  //     )
+  //   }
 }

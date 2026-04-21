@@ -4,60 +4,50 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const router = Router();
 
-// --- NEW SIGNUP ROUTE ---
-router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
-
-  // Requirement 1.2.2: Passwords must have at least 12 characters.
-  if (!password || password.length < 12) {
-    return res.status(400).json({ error: "Password must be at least 12 characters long." });
-  }
-
-  try {
-    // 1. Create the user in Supabase Auth (Admin level to bypass email verification)
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true // Bypasses the need for a real email check
-    });
-
-    if (authError) return res.status(400).json({ error: authError.message });
-
-    // 2. Sync that user to your 'profiles' table (Requirements 1.1.1 & 1.1.2)
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([
-        { 
-          id: authUser.user.id, 
-          email: email, 
-          username: email.split('@')[0] // Uses first part of email as default username
-        }
-      ]);
-
-    if (profileError) {
-      // Cleanup: delete auth user if profile creation fails
-      await supabase.auth.admin.deleteUser(authUser.user.id);
-      return res.status(400).json({ error: profileError.message });
-    }
-
-    res.status(200).json({ message: "Account created successfully!" });
-  } catch (err: any) {
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-// --- EXISTING SYNC ROUTE ---
+// This endpoint is called right after the frontend finishes logging in
 router.post('/sync', authenticateUser, async (req: any, res) => {
   const { id, email } = req.user;
-  // ... your existing sync logic ...
-});
 
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  try {
+    // 1. Check if the profile already exists in Supabase
+    const { data: profile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) return res.status(401).json({ error: error.message });
-  res.status(200).json({ session: data.session, user: data.user });
+    if (profile) {
+      return res.status(200).json({ 
+        message: 'Welcome back!', 
+        profile 
+      });
+    }
+
+    // 2. If no profile exists, create a new one
+    // We'll use the part before the '@' in their email as a default username
+    const defaultUsername = email.split('@')[0];
+
+    const { data: newProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert([{ 
+        id: id, 
+        username: defaultUsername, 
+        profile_pic_url: null 
+      }])
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    res.status(201).json({ 
+      message: 'Profile created successfully', 
+      profile: newProfile 
+    });
+
+  } catch (err: any) {
+    console.error('❌ Sync Error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 export default router;
