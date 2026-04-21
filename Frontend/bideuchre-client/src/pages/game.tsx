@@ -4,7 +4,7 @@ import PlayingCard from '../components/PlayingCard';
 import WhiteBox from '../components/WhiteBox';
 import BiddingBox from '../components/BiddingBox';
 import GameBox from '../components/GameBox';
-import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket';
+import { placeBid, connectSocket, registerGameListeners, playCard, joinGameRoom } from '../sockets/socket';
 import { Bid, BidType, Suit, Card } from '../types';
 
 const contractTypeToBidType: Record<number, BidType> = {
@@ -16,10 +16,12 @@ const contractTypeToBidType: Record<number, BidType> = {
 interface GameProps {
   token: string;
   user: any;
+  gameId: string;
+  onLeaveTable: () => void;
   onLogout: () => void;
 }
 
-export default function Game({ token, user, onLogout }: GameProps) {
+export default function Game({ token, user, gameId, onLeaveTable, onLogout }: GameProps) {
     // Player's hand and which cards can be played (from server via yourHand)
     const [cards, setCards] = React.useState<{ suit: string; value: string }[]>([]);
     const [playableCards, setPlayableCards] = React.useState<{ suit: string; value: string }[]>([]);
@@ -29,37 +31,6 @@ export default function Game({ token, user, onLogout }: GameProps) {
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
     const [currentTrick, setCurrentTrick] = React.useState<Card[]>([]);
-
-    useEffect(() => {
-        connectSocket("dev", undefined, (socketId) => setMyPlayerId(socketId));
-        const unregister = registerGameListeners(
-            (state: any) => {
-            setGameState(state);
-            setBiddingPhase(state?.phase !== "PLAYING");
-            // Clear center when trick/round ends or when we return to bidding.
-            if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
-                setCurrentTrick([]);
-            }
-            // Sync currentTrick from server so all players see the same cards (converts backend face→value)
-            if (state?.playedCards && Array.isArray(state.playedCards)) {
-                const faceToValue: Record<string, string> = {
-                    "9": "9", "10": "10", "Jack": "J", "Queen": "Q", "King": "K", "Ace": "A"
-                };
-                setCurrentTrick(state.playedCards.map((c: { suit: string; face: string }) => ({
-                    suit: (typeof c.suit === "string" ? c.suit.toLowerCase() : c.suit) as Suit,
-                    value: faceToValue[c.face] ?? c.face
-                })));
-            }
-        },
-            (handData) => {
-                setCards(handData.cards);
-                setPlayableCards(handData.playableCards);
-            }
-        );
-        return () => {
-            unregister?.();
-        };
-    }, []);
 
     const currentPlayerId =
         gameState?.currentPlayerId ?? gameState?.nextPlayerId ?? null;
@@ -273,11 +244,12 @@ export default function Game({ token, user, onLogout }: GameProps) {
     };
 
     useEffect(() => {
-        // Use the real email/username from the session
-        const displayName = user?.user_metadata?.username || user?.email;
+        const displayName = user?.user_metadata?.username || user?.email || "Player";
 
-        // Connect with the real JWT token
-        connectSocket(token, displayName, (socketId) => setMyPlayerId(socketId));
+        connectSocket(token, (socketId) => {
+            setMyPlayerId(socketId);
+            joinGameRoom(gameId, displayName);
+        });
 
         const unregister = registerGameListeners(
             (state: any) => {
@@ -286,7 +258,22 @@ export default function Game({ token, user, onLogout }: GameProps) {
                 if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
                     setCurrentTrick([]);
                 }
-                // ... existing logic ...
+                if (state?.playedCards && Array.isArray(state.playedCards)) {
+                    const faceToValue: Record<string, string> = {
+                        "9": "9",
+                        "10": "10",
+                        Jack: "J",
+                        Queen: "Q",
+                        King: "K",
+                        Ace: "A",
+                    };
+                    setCurrentTrick(
+                        state.playedCards.map((c: { suit: string; face: string }) => ({
+                            suit: (typeof c.suit === "string" ? c.suit.toLowerCase() : c.suit) as Suit,
+                            value: faceToValue[c.face] ?? c.face,
+                        }))
+                    );
+                }
             },
             (handData) => {
                 setCards(handData.cards);
@@ -297,7 +284,7 @@ export default function Game({ token, user, onLogout }: GameProps) {
         return () => {
             unregister?.();
         };
-    }, [token, user]);
+    }, [token, user, gameId]);
 
     return (
         <div style={{
@@ -311,6 +298,47 @@ export default function Game({ token, user, onLogout }: GameProps) {
             gap: "12px",
             boxSizing: "border-box",
     }}>
+        <div
+            style={{
+                width: "clamp(500px, 90vw, 1000px)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+            }}
+        >
+            <button
+                type="button"
+                onClick={onLeaveTable}
+                style={{
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.35)",
+                    background: "rgba(0,0,0,0.15)",
+                    color: "#f5f5f5",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                }}
+            >
+                Back to tables
+            </button>
+            <button
+                type="button"
+                onClick={onLogout}
+                style={{
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: "transparent",
+                    color: "rgba(255,255,255,0.85)",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                }}
+            >
+                Log out
+            </button>
+        </div>
         {scoreboard ? (
             <div
                 style={{
