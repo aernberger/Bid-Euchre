@@ -147,6 +147,9 @@ export default class SocketHandler {
           data?.name || "Player", 
           data.supabaseId || ""
         );
+
+        // TEMP DEBUG LOG
+        console.log(`[Table Create] Player ${player.name} initialized with DB ID: ${player.supabaseId}`);      
             
         const response = controller.addPlayer(player);
 

@@ -42,15 +42,15 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
     const handleCreate = useCallback(async () => {
         setError(null);
         setCreating(true);
-        try {
-            const id = await createGameOnServer(displayName);
+        try { 
+            const id = await createGameOnServer(displayName, user.id);
             onEnterGame(id);
         } catch (e: any) {
             setError(e?.message ?? "Could not create a table");
         } finally {
             setCreating(false);
         }
-    }, [displayName, onEnterGame]);
+    }, [displayName, onEnterGame, user.id]);
 
     const handleJoin = useCallback(
         (gameId: string) => {

@@ -60,9 +60,9 @@ export function getMyPlayerId(): string | null {
     return socket?.id ?? null;
 }
 
-export function joinGameRoom(gameId: string, displayName: string) {
+export function joinGameRoom(gameId: string, displayName: string, supabaseId: string) {
     const sock = getSocket();
-    sock.emit("joinGame", { gameId, name: displayName || "Player" });
+    sock.emit("joinGame", { gameId, name: displayName || "Player", supabaseId });
 }
 
 export function leaveGameRoom() {
@@ -84,7 +84,7 @@ export function subscribeLobby(onList: (games: LobbyGameSummary[]) => void) {
     };
 }
 
-export function createGameOnServer(displayName: string): Promise<string> {
+export function createGameOnServer(displayName: string, supabaseId: string): Promise<string> {
     return new Promise((resolve, reject) => {
         const sock = getSocket();
         const t = window.setTimeout(() => {
@@ -98,7 +98,7 @@ export function createGameOnServer(displayName: string): Promise<string> {
             else reject(new Error("No game id returned"));
         };
         sock.once("gameCreated", onCreated);
-        sock.emit("createGame", { name: displayName || "Player" });
+        sock.emit("createGame", { name: displayName || "Player", supabaseId });
     });
 }
 

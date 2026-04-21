@@ -3,9 +3,6 @@ import { RoundResult } from "../models/roundResult.js";
 import Player from "../models/player.js";
 
 export class StatsService {
-  /**
-   * Updates bidding, hand, and trick stats at the end of each round (hand).
-   */
   static async recordRoundStats(
     players: Player[],
     result: RoundResult,
@@ -13,39 +10,47 @@ export class StatsService {
     bidAmount: number,
     playerTricks: Record<string, number>
   ) {
-    const updates = players.map((player) => {
+    const updates = players.map(async (player) => {
       const isDeclarer = player.id === declarerId;
+
+      console.log(`🔎 PLAYER: ${player.name} | SOCKET_ID: ${player.id} | DB_ID: [${player.supabaseId}]`);
       
-      return supabase.rpc("update_player_stats", {
+      const { data, error } = await supabase.rpc("update_player_stats", {
         p_user_id: player.supabaseId,
-        p_is_match_over: false, // Match is not over, just the round
-        p_game_won: false,      // Match wins handled separately
+        p_is_match_over: false,
+        p_game_won: false,
         p_won_bid: isDeclarer,
         p_bid_amount: isDeclarer ? bidAmount : 0,
         p_made_bid: isDeclarer && result.contractMade,
         p_tricks_won: playerTricks[player.id] || 0,
         p_tricks_total: 6 
       });
+
+      if (error) {
+        console.error(`❌ DB Sync Failed for ${player.name}:`, error.message);
+        console.error(`Hint: Check if the function 'update_player_stats' exists in Supabase.`);
+      } else {
+        console.log(`✅ DB Sync Success for ${player.name}`);
+      }
     });
 
     await Promise.all(updates);
   }
 
-  /**
-   * Updates Games Played and Win % only when a team hits 21.
-   */
   static async recordGameStats(players: Player[], winnerTeamId: number) {
-    const updates = players.map((player) => {
-      return supabase.rpc("update_player_stats", {
+    const updates = players.map(async (player) => {
+      const { error } = await supabase.rpc("update_player_stats", {
         p_user_id: player.supabaseId,
-        p_is_match_over: true, // TRIGGER: Increment games_played for everyone
-        p_game_won: player.teamId === winnerTeamId, // TRIGGER: Increment games_won for winners
+        p_is_match_over: true,
+        p_game_won: player.teamId === winnerTeamId,
         p_won_bid: false,
         p_bid_amount: 0,
         p_made_bid: false,
         p_tricks_won: 0,
         p_tricks_total: 0
       });
+
+      if (error) console.error(`❌ Game End Sync Failed:`, error.message);
     });
 
     await Promise.all(updates);

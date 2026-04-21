@@ -248,7 +248,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
 
         connectSocket(token, (socketId) => {
             setMyPlayerId(socketId);
-            joinGameRoom(gameId, displayName);
+            joinGameRoom(gameId, displayName, user.id);
         });
 
         const unregister = registerGameListeners(
