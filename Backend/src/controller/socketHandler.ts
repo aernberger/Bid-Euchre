@@ -5,6 +5,7 @@ import { Bid } from "../services/bid.js";
 import { Contract } from "../services/contract.js";
 import Trick from "../models/trick.js";
 import Card from "../models/card.js";
+import { StatsService } from "../services/statsService.js";
 
 
 
@@ -61,7 +62,13 @@ onMessageEvent(messageText: string) {
 onJoinGame(socket: Socket, data: any) {
     try {
         socket.join("game");
-        const player = new Player(socket.id, data?.name || "Player");
+        
+        const player = new Player(
+          socket.id, 
+          data?.name || "Player", 
+          data.supabaseId 
+        );
+        
         const response = this.controller.addPlayer(player);
         const fullState = { ...this.controller.getPublicState(), ...response };
         this.wss.to("game").emit("gameUpdate", fullState);
@@ -100,19 +107,47 @@ private onPlaceBid(socket: Socket, data: any) {
     }
 }
 
-private onPlayCard(socket: Socket, data: any) {
+private async onPlayCard(socket: Socket, data: any) {
     try {
-        const card = new Card(
-            data.suit,
-            data.face
-        );
+        const card = new Card(data.suit, data.face);
         const response = this.controller.playCard(socket.id, card);
-        // Merge with public state so clients get phase, players, etc.; include playedCards for all to see
+
+        // 1. UPDATE THE UI FIRST (Don't make players wait for the DB)
         const fullState = { ...this.controller.getPublicState(), ...response };
         this.wss.to("game").emit("gameUpdate", fullState);
         this.sendHandsToPlayers();
+
+        // 2. RUN STATS IN THE BACKGROUND
+        if (response.stats) {
+            console.log("Round ended. Syncing to Supabase in background...");
+            
+            // We wrap this so a DB error doesn't freeze the game turn
+            try {
+                await StatsService.recordRoundStats(
+                    this.controller.getPlayers(),
+                    response.stats.roundResult!,
+                    response.stats.declarerId!,
+                    response.stats.bidAmount ?? 0,
+                    response.stats.playerTrickCounts
+                );
+
+                if (response.type === "GAME_COMPLETE") {
+                    await StatsService.recordGameStats(
+                        this.controller.getPlayers(),
+                        response.winnerTeamId ?? 0
+                    );
+                }
+            } catch (dbError: any) {
+                console.error("STATS ERROR (Game continuing):", dbError.message);
+                // The game continues, but we know the stats failed
+            }
+        }
+        
     } catch (error: any) {
+        console.error("GAME LOGIC ERROR:", error.message);
         socket.emit("errorMessage", error.message);
     }
 }
+
+
 }

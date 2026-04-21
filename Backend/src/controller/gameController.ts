@@ -38,7 +38,7 @@ export class GameController {
       : [];
     return {
       phase: this.phase,
-      players: this.players.map((p) => ({ id: p.id, name: p.name })),
+      players: this.players.map((p) => ({ id: p.id, name: p.name, teamId: p.teamId })),
       currentPlayerId: currentPlayer?.id ?? null,
       highestBid: this.highestBid,
       winningBid: this.winningBid,
@@ -93,29 +93,38 @@ export class GameController {
   }
 
   initializeGame() {
+    // Assign teams
     const team1 = new Team(this.players[0], this.players[2], 1);
     const team2 = new Team(this.players[1], this.players[3], 2);
+
+    // IMPORTANT: Explicitly set the teamId on the Player objects 
+    // so the frontend knows which team they are on.
+    this.players[0].teamId = 1;
+    this.players[2].teamId = 1;
+    this.players[1].teamId = 2;
+    this.players[3].teamId = 2;
 
     this.game = new Game(this.players, [team1, team2]);
     this.dealerIndex = Math.floor(Math.random() * 4);
     this.dealHands();
 
-    // first to act is player left of dealer
     this.currentPlayerIndex = (this.dealerIndex + 1) % this.players.length;
-
     this.phase = GamePhase.BIDDING;
+
     return {
       type: "GAME_INITIALIZED",
+      // Include the teamId and seat in the response
       players: this.players.map((player, index) => ({
         id: player.id,
         name: player.name,
+        teamId: player.teamId,
         seat: index
       })),
       dealerId: this.players[this.dealerIndex].id,
       currentPlayerId: this.players[this.currentPlayerIndex].id,
       phase: this.phase,
     };
-  }
+}
 
   public getPlayers(): Player[] {
     return this.players;
@@ -283,6 +292,7 @@ export class GameController {
       throw new Error("Not your turn");
     }
 
+    // 1. VALIDATION
     const legalMoves = this.getPlayableCards(playerId);
     const isLegalCard = legalMoves.some(
       (legalCard) => legalCard.suit === card.suit && legalCard.face === card.face
@@ -291,19 +301,32 @@ export class GameController {
       throw new Error("Illegal card play (must follow suit)");
     }
 
+    // 2. UPDATE HAND STATE (The part I missed)
     const playerHand = this.playerHands.get(playerId);
     if (!playerHand) {
       throw new Error("Player hand not found");
     }
+    
+    // Remove from the Hand model and update the Player object
     playerHand.removeCard(card);
     currentPlayer.setCards(playerHand.getCards());
 
-    // delegate trick/round handling to Game (which uses Round/Trick)
+    // 3. EXECUTE GAME ENGINE LOGIC
     const playProgress = this.game.playCard(playerId, card);
+    
+    // Advance the turn
     this.setCurrentPlayerById(playProgress.nextPlayerId);
 
+    // 4. HANDLE ROUND/GAME COMPLETION
     if (playProgress.roundResult) {
-      // round finished — return summary and check for game end
+      // Capture the stats snapshot before we reset the round state
+      const statsPayload = {
+        roundResult: playProgress.roundResult,
+        declarerId: this.contract?.declarerId,
+        bidAmount: this.contract?.tricksRequired,
+        playerTrickCounts: this.game.getIndividualTrickCounts()
+      };
+
       if (this.game.isGameOver()) {
         const winner = this.game.getWinningTeam();
         this.phase = GamePhase.WAITING;
@@ -311,17 +334,23 @@ export class GameController {
           type: "GAME_COMPLETE",
           winnerTeamId: winner?.teamId,
           round: playProgress.roundResult,
+          stats: statsPayload 
         };
       }
-      this.setupNextBiddingRound();
+
+      // If game continues, clear the bidding state for the next hand
+      this.setupNextBiddingRound(); 
+
       return {
         type: "ROUND_COMPLETE",
         roundResult: playProgress.roundResult,
         dealerId: this.players[this.dealerIndex].id,
         nextPlayerId: this.players[this.currentPlayerIndex].id,
+        stats: statsPayload 
       };
     }
 
+    // 5. STANDARD PLAY RESPONSE
     return {
       type: "CARD_PLAYED",
       playerId,
@@ -329,6 +358,5 @@ export class GameController {
       nextPlayerId: this.players[this.currentPlayerIndex].id,
       playedBy: playerId,
     };
-  }
-
+}
 }
