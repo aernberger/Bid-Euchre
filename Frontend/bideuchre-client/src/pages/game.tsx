@@ -6,13 +6,7 @@ import BiddingBox from '../components/BiddingBox';
 import GameBox from '../components/GameBox';
 import { placeBid, connectSocket, registerGameListeners, playCard, joinGameRoom } from '../sockets/socket';
 import { Bid, BidType, Suit, Card } from '../types';
-import PlayingCard from "../components/PlayingCard.tsx";
-import WhiteBox from "../components/WhiteBox.tsx";
-import BiddingBox from '../components/BiddingBox.tsx';
-import GameBox from "../components/GameBox.tsx";
-import { placeBid, connectSocket, registerGameListeners, playCard } from '../sockets/socket.ts';
 import { statPill } from '../ui/statPill';
-import { Bid, BidType, Suit, Card } from '../types.js';
 
 const contractTypeToBidType: Record<number, BidType> = {
     0: "Low",

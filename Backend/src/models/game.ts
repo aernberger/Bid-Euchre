@@ -9,7 +9,7 @@ export class Game {
   private currentRound?: Round;
   private readonly teams: Team[];
   private readonly players: Player[];
-  private readonly winningScore = 3;
+  private readonly winningScore = 21;
 
   // NEW: Track individual tricks for stats (Requirement 5.4.1)
   private individualTrickCounts: Map<string, number> = new Map();
