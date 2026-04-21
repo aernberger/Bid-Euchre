@@ -1,81 +1,61 @@
-import { Contract } from "../services/contract.js";
-import Card from "./card.js";
-import Player from "./player.js";
-import { PlayCardProgress, Round } from "./round.js";
-import { RoundResult } from "./roundResult.js";
-import Team from "./team.js";
+import { Contract } from "../services/contract.js"
+import Card from "./card.js"
+import Player from "./player.js"
+import { PlayCardProgress, Round } from "./round.js"
+import { RoundResult } from "./roundResult.js"
+import Team from "./team.js"
 
 export class Game {
-  private currentRound?: Round;
-  private readonly teams: Team[];
-  private readonly players: Player[];
-  private readonly winningScore = 3;
+  private currentRound?: Round
+  private readonly teams: Team[]
+  private readonly players: Player[]
 
-  // NEW: Track individual tricks for stats (Requirement 5.4.1)
-  private individualTrickCounts: Map<string, number> = new Map();
+  private readonly winningScore = 21;
 
   constructor(players: Player[], teams: Team[]) {
-    this.players = players;
-    this.teams = teams;
-    // Initialize everyone at 0
-    this.players.forEach(p => this.individualTrickCounts.set(p.id, 0));
+    this.players = players
+    this.teams = teams
   }
 
   startNewRound(contract: Contract, startingLeaderId?: string) {
-    // Reset individual counts for the new hand
-    this.players.forEach(p => this.individualTrickCounts.set(p.id, 0));
-    
     this.currentRound = new Round(
       contract,
       this.teams,
       this.players.map(player => player.id),
       startingLeaderId
-    );
+    )
   }
 
   playCard(playerId: string, card: Card): PlayCardProgress {
     if (!this.currentRound) {
-      throw new Error("No active round");
+      throw new Error("No active round")
     }
 
-    const progress = this.currentRound.playCard(playerId, card);
-
-    // Update individual trick counts when a trick is finished
-    if (progress.trickCompleted && progress.trickWinnerId) {
-      const current = this.individualTrickCounts.get(progress.trickWinnerId) || 0;
-      this.individualTrickCounts.set(progress.trickWinnerId, current + 1);
-    }
+    const progress = this.currentRound.playCard(playerId, card)
 
     if (progress.roundResult) {
-      this.applyRoundResult(progress.roundResult);
-      // We do NOT nullify currentRound yet—the controller might need it for a split second
+      this.applyRoundResult(progress.roundResult)
+      this.currentRound = undefined
     }
 
-    return progress;
-  }
-
-  // Helper for StatsService
-  public getIndividualTrickCounts(): Record<string, number> {
-    return Object.fromEntries(this.individualTrickCounts);
+    return progress
   }
 
   private applyRoundResult(result: RoundResult) {
-    const team = this.getTeamById(result.pointsAwardedToTeamId);
-    team.setGameScore(result.pointsAwarded);
+    const team = this.getTeamById(result.pointsAwardedToTeamId)
+    team.setGameScore(result.pointsAwarded)
   }
 
   isGameOver(): boolean {
-    return this.teams.some(team => team.getGameScore() >= this.winningScore);
+    return this.teams.some(
+      team => team.getGameScore() >= this.winningScore
+    )
   }
 
   getWinningTeam(): Team | undefined {
-    return this.teams.find(team => team.getGameScore() >= this.winningScore);
-  }
-
-  private getTeamById(teamId: number): Team {
-    const team = this.teams.find(t => t.teamId === teamId);
-    if (!team) throw new Error("Team not found");
-    return team;
+    return this.teams.find(
+      team => team.getGameScore() >= this.winningScore
+    )
   }
 
   public getLegalMovesForPlayer(playerId: string, hand: Card[], contract: Contract): Card[] {
@@ -105,5 +85,15 @@ export class Game {
       return null
     }
     return Object.fromEntries(this.currentRound.getTeamTrickCounts())
+  }
+
+  private getTeamById(teamId: number): Team {
+    const team = this.teams.find(t => t.teamId === teamId)
+
+    if (!team) {
+      throw new Error("Team not found")
+    }
+
+    return team
   }
 }
