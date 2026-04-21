@@ -115,37 +115,14 @@ export default class SocketHandler {
         socket.on("playCard", (data) => this.onPlayCard(socket, data));
     }
 
-    disconnect(socket: Socket) {
-        console.log("Socket disconnected");
-        this.detachSocketFromCurrentGame(socket, true);
-    }
-
-    onMessageEvent(messageText: string) {
-        console.log("Message event received: ", messageText);
-    }
-
-    onLobbySubscribe(socket: Socket) {
-        socket.join(lobbyRoom);
-        socket.emit("lobbyGames", this.getLobbySnapshot());
-    }
-
-    onLobbyUnsubscribe(socket: Socket) {
-        socket.leave(lobbyRoom);
-    }
-
-    onCreateGame(socket: Socket, data: PlayerJoinData) {
-        try {
-            this.detachSocketFromCurrentGame(socket, true);
-
-            const gameId = randomUUID();
-            const controller = new GameController();
-            this.games.set(gameId, controller);
-
-            
-        const player = new Player(
-          socket.id, 
-          data?.name || "Player", 
-          data.supabaseId || ""
+private onPlaceBid(socket: Socket, data: any) {
+    try {
+        const bid = new Bid(
+            socket.id,
+            data.tricks,
+            data.contractType,
+            data.suitType,
+            Boolean(data.loner)
         );
 
         // TEMP DEBUG LOG

@@ -39,7 +39,16 @@ export class Bid {
         }
 
         // Secondary comparison: contract type
-        return this.contractType - other.contractType;
+        if (this.contractType !== other.contractType) {
+            return this.contractType - other.contractType;
+        }
+
+        // Same tricks + contract: loner outranks non-loner (only valid for 6-trick bids)
+        if (this.loner !== other.loner) {
+            return (this.loner ? 1 : 0) - (other.loner ? 1 : 0);
+        }
+
+        return 0;
     }
 
     beats(other: Bid): boolean {
