@@ -7,6 +7,12 @@ import Card from "../models/card.js";
 import { GamePhase } from "./enums/gamePhase.js";
 import { StatsService } from "../services/statsService.js";
 
+interface PlayerJoinData {
+    name?: string;
+    supabaseId?: string;
+    gameId?: string;
+}
+
 const lobbyRoom = "lobby";
 
 function gameRoomName(gameId: string) {
@@ -15,12 +21,14 @@ function gameRoomName(gameId: string) {
 
 export default class SocketHandler {
     private wss: Server;
+    private controller!: GameController; 
     private games = new Map<string, GameController>();
     /** socket.id → gameId while seated at a table */
     private socketToGame = new Map<string, string>();
 
     constructor(wss: Server) {
         this.wss = wss;
+        this.controller = new GameController();
         this.wss.on("connection", (socket) => {
             console.log("Socket connected");
             this.registerSocketHandlers(socket);
@@ -125,7 +133,7 @@ export default class SocketHandler {
         socket.leave(lobbyRoom);
     }
 
-    onCreateGame(socket: Socket, data: { name?: string }) {
+    onCreateGame(socket: Socket, data: PlayerJoinData) {
         try {
             this.detachSocketFromCurrentGame(socket, true);
 
@@ -137,7 +145,7 @@ export default class SocketHandler {
         const player = new Player(
           socket.id, 
           data?.name || "Player", 
-          data.supabaseId 
+          data.supabaseId || ""
         );
             
         const response = controller.addPlayer(player);
@@ -154,7 +162,7 @@ export default class SocketHandler {
         }
     }
 
-    onJoinGame(socket: Socket, data: { gameId?: string; name?: string }) {
+    onJoinGame(socket: Socket, data: PlayerJoinData) {
         try {
             const gameId = data?.gameId;
             if (!gameId || typeof gameId !== "string") {
@@ -181,7 +189,7 @@ export default class SocketHandler {
             const alreadySeated = controller.getPlayers().some((p) => p.id === socket.id);
             let response: Record<string, unknown>;
             if (!alreadySeated) {
-                const player = new Player(socket.id, data?.name || "Player");
+                const player = new Player(socket.id, data?.name || "Player", data.supabaseId || "");
                 response = controller.addPlayer(player);
             } else {
                 response = { type: "REJOINED", players: controller.getPlayers().map((p) => ({ id: p.id, name: p.name })) };
@@ -232,22 +240,35 @@ export default class SocketHandler {
 
 private async onPlayCard(socket: Socket, data: any) {
     try {
+        // 1. Find which game this socket belongs to
+        const gameId = this.socketToGame.get(socket.id);
+        if (!gameId) {
+            socket.emit("errorMessage", "You are not in an active game.");
+            return;
+        }
+
+        const controller = this.games.get(gameId);
+        if (!controller) {
+            socket.emit("errorMessage", "Game session not found.");
+            return;
+        }
+
         const card = new Card(data.suit, data.face);
-        const response = this.controller.playCard(socket.id, card);
+        
+        // 2. Execute the play on the CORRECT controller
+        const response = controller.playCard(socket.id, card);
 
-        // 1. UPDATE THE UI FIRST (Don't make players wait for the DB)
-        const fullState = { ...this.controller.getPublicState(), ...response };
-        this.wss.to("game").emit("gameUpdate", fullState);
-        this.sendHandsToPlayers();
+        // 3. Update the UI using your multi-game helper
+        // This handles emitting to the right room and updating hands
+        this.emitGameUpdate(gameId, response);
 
-        // 2. RUN STATS IN THE BACKGROUND
+        // 4. RUN STATS IN THE BACKGROUND
         if (response.stats) {
-            console.log("Round ended. Syncing to Supabase in background...");
+            console.log(`[Game ${gameId}] Round ended. Syncing to Supabase...`);
             
-            // We wrap this so a DB error doesn't freeze the game turn
             try {
                 await StatsService.recordRoundStats(
-                    this.controller.getPlayers(),
+                    controller.getPlayers(), // Use the specific game's players
                     response.stats.roundResult!,
                     response.stats.declarerId!,
                     response.stats.bidAmount ?? 0,
@@ -256,13 +277,12 @@ private async onPlayCard(socket: Socket, data: any) {
 
                 if (response.type === "GAME_COMPLETE") {
                     await StatsService.recordGameStats(
-                        this.controller.getPlayers(),
+                        controller.getPlayers(),
                         response.winnerTeamId ?? 0
                     );
                 }
             } catch (dbError: any) {
-                console.error("STATS ERROR (Game continuing):", dbError.message);
-                // The game continues, but we know the stats failed
+                console.error("STATS ERROR:", dbError.message);
             }
         }
         
