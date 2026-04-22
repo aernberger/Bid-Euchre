@@ -195,6 +195,10 @@ export default class SocketHandler {
                 const player = new Player(socket.id, data?.name || "Player", data.supabaseId || "");
                 response = controller.addPlayer(player);
             } else {
+                const existingPlayer = controller.getPlayers().find((p) => p.id === socket.id);
+                if (existingPlayer) {
+                    existingPlayer.supabaseId = data.supabaseId || "";
+                }
                 response = { type: "REJOINED", players: controller.getPlayers().map((p) => ({ id: p.id, name: p.name })) };
             }
 

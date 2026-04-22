@@ -12,6 +12,14 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("❌ Supabase environment variables are missing! Check your .env file.");
 }
 
+export const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false, // Prevents the client from "remembering" a user
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
+
 const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
 export default supabase;

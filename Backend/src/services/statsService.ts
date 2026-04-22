@@ -1,6 +1,7 @@
 import supabase from "../supabaseClient.js";
 import { RoundResult } from "../models/roundResult.js";
 import Player from "../models/player.js";
+import { supabaseAdmin } from "../supabaseClient.js";
 
 export class StatsService {
   static async recordRoundStats(
@@ -15,7 +16,7 @@ export class StatsService {
 
       console.log(`🔎 PLAYER: ${player.name} | SOCKET_ID: ${player.id} | DB_ID: [${player.supabaseId}]`);
       
-      const { data, error } = await supabase.rpc("update_player_stats", {
+      const { data, error } = await supabaseAdmin.rpc("update_player_stats", {
         p_user_id: player.supabaseId,
         p_is_match_over: false,
         p_game_won: false,
