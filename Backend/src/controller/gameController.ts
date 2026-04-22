@@ -162,6 +162,9 @@ export class GameController {
     }
 
     if (bid.isPass()) {
+      if (this.bids.length === 0) {
+        throw new Error("The first player to bid cannot pass. Please place a bid.");
+      }
       this.bids.push(bid);
       this.advanceTurn();
       if (this.isBiddingComplete()) {
