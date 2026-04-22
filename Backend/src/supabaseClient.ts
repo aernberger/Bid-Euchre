@@ -9,7 +9,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Safety check to help you debug
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error("❌ Supabase environment variables are missing! Check your .env file.");
+  throw new Error(" Supabase environment variables are missing! Check your .env file.");
 }
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {

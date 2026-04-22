@@ -7,6 +7,7 @@ import Card from "../models/card.js";
 import { GamePhase } from "./enums/gamePhase.js";
 import { StatsService } from "../services/statsService.js";
 
+
 interface PlayerJoinData {
     name?: string;
     supabaseId?: string;
@@ -21,10 +22,12 @@ function gameRoomName(gameId: string) {
 
 export default class SocketHandler {
     private wss: Server;
-    private controller!: GameController; 
+    private controller!: GameController;
     private games = new Map<string, GameController>();
     /** socket.id → gameId while seated at a table */
     private socketToGame = new Map<string, string>();
+
+    private userToSocket = new Map<string, string>();
 
     constructor(wss: Server) {
         this.wss = wss;
@@ -73,6 +76,24 @@ export default class SocketHandler {
         this.sendHandsToPlayers(gameId);
     }
 
+    private enforceSingleSession(supabaseId: string, socketId: string) {
+        if (!supabaseId) return;
+
+        const existingSocketId = this.userToSocket.get(supabaseId);
+
+        if (existingSocketId && existingSocketId !== socketId) {
+            const oldSocket = this.wss.sockets.sockets.get(existingSocketId);
+            if (oldSocket) {
+                console.log(`Kicking old session for user ${supabaseId}`);
+                oldSocket.emit("errorMessage", "You have been logged in from another tab.");
+                oldSocket.disconnect(true); // true forces immediate close
+            }
+        }
+
+        // Register this socket as the active one for this user
+        this.userToSocket.set(supabaseId, socketId);
+    }
+
     private detachSocketFromCurrentGame(socket: Socket, emitUpdates: boolean) {
         const gameId = this.socketToGame.get(socket.id);
         if (!gameId) return;
@@ -117,6 +138,12 @@ export default class SocketHandler {
 
     disconnect(socket: Socket) {
         console.log("Socket disconnected");
+        for (const [uId, sId] of this.userToSocket.entries()) {
+            if (sId === socket.id) {
+                this.userToSocket.delete(uId);
+                break;
+            }
+        }
         this.detachSocketFromCurrentGame(socket, true);
     }
 
@@ -135,23 +162,25 @@ export default class SocketHandler {
 
     onCreateGame(socket: Socket, data: PlayerJoinData) {
         try {
+            if (data.supabaseId) this.enforceSingleSession(data.supabaseId, socket.id);
+
             this.detachSocketFromCurrentGame(socket, true);
 
             const gameId = randomUUID();
             const controller = new GameController();
             this.games.set(gameId, controller);
 
-            
-        const player = new Player(
-          socket.id, 
-          data?.name || "Player", 
-          data.supabaseId || ""
-        );
 
-        // TEMP DEBUG LOG
-        console.log(`[Table Create] Player ${player.name} initialized with DB ID: ${player.supabaseId}`);      
-            
-        const response = controller.addPlayer(player);
+            const player = new Player(
+                socket.id,
+                data?.name || "Player",
+                data.supabaseId || ""
+            );
+
+            // TEMP DEBUG LOG
+            console.log(`[Table Create] Player ${player.name} initialized with DB ID: ${player.supabaseId}`);
+
+            const response = controller.addPlayer(player);
 
             socket.leave(lobbyRoom);
             socket.join(gameRoomName(gameId));
@@ -167,6 +196,8 @@ export default class SocketHandler {
 
     onJoinGame(socket: Socket, data: PlayerJoinData) {
         try {
+            if (data.supabaseId) this.enforceSingleSession(data.supabaseId, socket.id);
+
             const gameId = data?.gameId;
             if (!gameId || typeof gameId !== "string") {
                 socket.emit("errorMessage", "Select a game to join.");
@@ -245,59 +276,59 @@ export default class SocketHandler {
         }
     }
 
-private async onPlayCard(socket: Socket, data: any) {
-    try {
-        // 1. Find which game this socket belongs to
-        const gameId = this.socketToGame.get(socket.id);
-        if (!gameId) {
-            socket.emit("errorMessage", "You are not in an active game.");
-            return;
-        }
-
-        const controller = this.games.get(gameId);
-        if (!controller) {
-            socket.emit("errorMessage", "Game session not found.");
-            return;
-        }
-
-        const card = new Card(data.suit, data.face);
-        
-        // 2. Execute the play on the CORRECT controller
-        const response = controller.playCard(socket.id, card);
-
-        // 3. Update the UI using your multi-game helper
-        // This handles emitting to the right room and updating hands
-        this.emitGameUpdate(gameId, response);
-
-        // 4. RUN STATS IN THE BACKGROUND
-        if (response.stats) {
-            console.log(`[Game ${gameId}] Round ended. Syncing to Supabase...`);
-            
-            try {
-                await StatsService.recordRoundStats(
-                    controller.getPlayers(), // Use the specific game's players
-                    response.stats.roundResult!,
-                    response.stats.declarerId!,
-                    response.stats.bidAmount ?? 0,
-                    response.stats.playerTrickCounts
-                );
-
-                if (response.type === "GAME_COMPLETE") {
-                    await StatsService.recordGameStats(
-                        controller.getPlayers(),
-                        response.winnerTeamId ?? 0
-                    );
-                }
-            } catch (dbError: any) {
-                console.error("STATS ERROR:", dbError.message);
+    private async onPlayCard(socket: Socket, data: any) {
+        try {
+            // 1. Find which game this socket belongs to
+            const gameId = this.socketToGame.get(socket.id);
+            if (!gameId) {
+                socket.emit("errorMessage", "You are not in an active game.");
+                return;
             }
+
+            const controller = this.games.get(gameId);
+            if (!controller) {
+                socket.emit("errorMessage", "Game session not found.");
+                return;
+            }
+
+            const card = new Card(data.suit, data.face);
+
+            // 2. Execute the play on the CORRECT controller
+            const response = controller.playCard(socket.id, card);
+
+            // 3. Update the UI using your multi-game helper
+            // This handles emitting to the right room and updating hands
+            this.emitGameUpdate(gameId, response);
+
+            // 4. RUN STATS IN THE BACKGROUND
+            if (response.stats) {
+                console.log(`[Game ${gameId}] Round ended. Syncing to Supabase...`);
+
+                try {
+                    await StatsService.recordRoundStats(
+                        controller.getPlayers(), // Use the specific game's players
+                        response.stats.roundResult!,
+                        response.stats.declarerId!,
+                        response.stats.bidAmount ?? 0,
+                        response.stats.playerTrickCounts
+                    );
+
+                    if (response.type === "GAME_COMPLETE") {
+                        await StatsService.recordGameStats(
+                            controller.getPlayers(),
+                            response.winnerTeamId ?? 0
+                        );
+                    }
+                } catch (dbError: any) {
+                    console.error("STATS ERROR:", dbError.message);
+                }
+            }
+
+        } catch (error: any) {
+            console.error("GAME LOGIC ERROR:", error.message);
+            socket.emit("errorMessage", error.message);
         }
-        
-    } catch (error: any) {
-        console.error("GAME LOGIC ERROR:", error.message);
-        socket.emit("errorMessage", error.message);
     }
-}
 
 
 }
