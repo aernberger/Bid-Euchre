@@ -3,6 +3,18 @@ import { useState } from 'react';
 import WhiteBox from "./WhiteBox";
 import { statPill } from "../ui/statPill";
 import { Bid, BidType, Suit } from '../types';
+import {
+    biddingActionsStyle,
+    biddingLabelStyle,
+    biddingRootStyle,
+    biddingSectionStyle,
+    biddingSuitRowStyle,
+    biddingTopRowStyle,
+    biddingWrapRowStyle,
+    chipStyle,
+    confirmBidButtonStyle,
+    passButtonStyle,
+} from "./BiddingBox.styles";
 
 
 interface BiddingBoxProperties {
@@ -49,35 +61,10 @@ export default function BiddingBox({
     const canConfirm = selectedType !== null && selectedNumber !== null && hasSuit
         && isBidValid(selectedType, selectedNumber, currentHighBid);
 
-    const chipStyle = (active: boolean, disabled = false): React.CSSProperties => ({
-        padding: "8px 12px",
-        borderRadius: "999px",
-        border: disabled
-            ? "1px solid #e5e7eb"
-            : active
-                ? "1px solid #2563eb"
-                : "1px solid #d1d5db",
-        backgroundColor: disabled ? "#f3f4f6" : active ? "#dbeafe" : "#ffffff",
-        color: disabled ? "#9ca3af" : "#1f2937",
-        fontWeight: active ? 700 : 500,
-        opacity: disabled ? 0.65 : 1,
-        cursor: disabled ? "not-allowed" : "pointer",
-    });
-
     return (
         <WhiteBox height={"clamp(333px, 45vh, 625px)"} width="clamp(500px, 90vw, 1000px)">
-                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                            gap: "8px",
-                            width: "100%",
-                            maxWidth: "680px",
-                        }}
-                    >
+                <div style={biddingRootStyle}>
+                    <div style={biddingTopRowStyle}>
                         <span
                             style={statPill(statusPillVariant, "lg", {
                                 whiteSpace: "normal",
@@ -101,9 +88,9 @@ export default function BiddingBox({
                         </span>
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "680px", alignItems: "center" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Contract Type</div>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                    <div style={biddingSectionStyle}>
+                        <div style={biddingLabelStyle}>Contract Type</div>
+                        <div style={biddingWrapRowStyle}>
                         {["Low", "Suited", "High"].map((bid) => (
                             (() => {
                                 const disabled = !isPlayerTurn;
@@ -123,8 +110,8 @@ export default function BiddingBox({
                     </div>
 
                     {needsSuit && (
-                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: "680px" }}>
-                            <span style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Choose trump suit:</span>
+                        <div style={biddingSuitRowStyle}>
+                            <span style={biddingLabelStyle}>Choose trump suit:</span>
                             {(["hearts", "spades", "diamonds", "clubs"] as Suit[]).map((suit) => (
                                 (() => {
                                     const disabled = !isPlayerTurn;
@@ -143,9 +130,9 @@ export default function BiddingBox({
                         </div>
                     )}
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%", maxWidth: "680px", alignItems: "center" }}>
-                        <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>Tricks</div>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                    <div style={biddingSectionStyle}>
+                        <div style={biddingLabelStyle}>Tricks</div>
+                        <div style={biddingWrapRowStyle}>
                         {[1, 2, 3, 4, 5, 6].map((num) => {
                             const anyTypeValid = (["Low", "Suited", "High"] as BidType[]).some(
                                 (t) => isBidValid(t, num, currentHighBid)
@@ -168,20 +155,11 @@ export default function BiddingBox({
                     </div>
 
                     {selectedNumber === 6 && isPlayerTurn ? (
-                        <div
-                            style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "8px",
-                                width: "100%",
-                                maxWidth: "680px",
-                                alignItems: "center",
-                            }}
-                        >
-                            <div style={{ fontSize: "13px", fontWeight: 600, opacity: 0.75 }}>
+                        <div style={biddingSectionStyle}>
+                            <div style={biddingLabelStyle}>
                                 Six tricks — play without your partner?
                             </div>
-                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                            <div style={biddingWrapRowStyle}>
                                 <button
                                     type="button"
                                     disabled={!isPlayerTurn}
@@ -202,7 +180,7 @@ export default function BiddingBox({
                         </div>
                     ) : null}
 
-                    <div style={{ display: "flex", gap: "10px", marginTop: "4px", flexWrap: "wrap", justifyContent: "center", width: "100%", maxWidth: "680px" }}>
+                    <div style={biddingActionsStyle}>
                         <button
                             disabled={!isPlayerTurn || !canConfirm}
                             onClick={() => {
@@ -218,15 +196,7 @@ export default function BiddingBox({
                                     onBidSubmit(bid);
                                 }
                             }}
-                            style={{
-                                padding: "10px 14px",
-                                borderRadius: "8px",
-                                border: "1px solid #1d4ed8",
-                                backgroundColor: !isPlayerTurn || !canConfirm ? "#bfdbfe" : "#2563eb",
-                                color: "#ffffff",
-                                fontWeight: 700,
-                                cursor: !isPlayerTurn || !canConfirm ? "not-allowed" : "pointer",
-                            }}
+                            style={confirmBidButtonStyle(!isPlayerTurn || !canConfirm)}
                         >
                             Confirm Bid
                         </button>
@@ -236,15 +206,7 @@ export default function BiddingBox({
                                 setWantLoner(false);
                                 onBidSubmit({ type: "Low", number: 0 });
                             }}
-                            style={{
-                                padding: "10px 14px",
-                                borderRadius: "8px",
-                                border: "1px solid #d1d5db",
-                                backgroundColor: "#ffffff",
-                                color: "#374151",
-                                fontWeight: 600,
-                                cursor: !isPlayerTurn ? "not-allowed" : "pointer",
-                            }}
+                            style={passButtonStyle(!isPlayerTurn)}
                         >
                             Pass
                         </button>

@@ -1,6 +1,12 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { Heart, Diamond, Club, Spade, Crown, ChessKing, ChessQueen } from "lucide-react";
+import {
+    playingCardButtonStyle,
+    playingCardCenterIconStyle,
+    playingCardHeaderStyle,
+    playingCardValueStyle,
+} from "./PlayingCard.styles";
 
 type Suit = "hearts" | "spades" | "diamonds" | "clubs";
 
@@ -55,35 +61,20 @@ export default function PlayingCard({suit, value, disabled, onClick, compact = f
         window.addEventListener("resize", updateSize);
         return () => window.removeEventListener("resize", updateSize); // cleanup
     }, []);
-    const cardStyle = compact
-        ? { width: "56px", height: "84px", padding: "4px" }
-        : { width: "clamp(50px, 8vw, 150px)", height: "clamp(75px, 12vw, 225px)", padding: "8px" };
-
     return( 
         <button
             onClick={onClick}
             disabled = {disabled}
             onMouseEnter={() => setSelected(true)}
             onMouseLeave={() => setSelected(false)}
-            style={{
-                ...cardStyle,
-                border: selected ? "3px solid blue" : "2px solid black",
-                borderRadius: "8px",
-                backgroundColor: "White",
-                opacity: disabled ? 0.5 : 1,
-                cursor: disabled ? "not-allowed" : "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-
-            }}
+            style={playingCardButtonStyle(compact, selected, Boolean(disabled))}
         >
-            <div style={{color: color, display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%"}}>
-                <div style={{fontWeight: "bold", fontSize: compact ? "10px" : "clamp(12px, 2vw, 24px)"}}>{value}</div>
+            <div style={playingCardHeaderStyle(color)}>
+                <div style={playingCardValueStyle(compact)}>{value}</div>
                 <SuitIcon size={(compact ? 12 : iconSize * .33)} color={color} fill={color}/>
             </div>
 
-            <div style={{color: color, marginTop: compact ? "4px" : "16px"}}>
+            <div style={playingCardCenterIconStyle(compact, color)}>
                 <FaceIcon size={compact ? 28 : iconSize} color={color} fill={color}/>
             </div>
         </button>

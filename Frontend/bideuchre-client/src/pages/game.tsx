@@ -7,6 +7,24 @@ import GameBox from '../components/GameBox';
 import { placeBid, connectSocket, registerGameListeners, playCard, joinGameRoom } from '../sockets/socket';
 import { Bid, BidType, Suit, Card } from '../types';
 import { statPill } from '../ui/statPill';
+import {
+    backToTablesButtonStyle,
+    gameLogoutButtonStyle,
+    gamePageStyle,
+    gameTopActionsStyle,
+    handAreaWrapStyle,
+    handCardsRowStyle,
+    handTopRightActionsStyle,
+    myNameRowStyle,
+    rulesButtonStyle,
+    rulesCloseButtonStyle,
+    rulesGridStyle,
+    rulesHeaderStyle,
+    rulesModalBackdropStyle,
+    rulesModalStyle,
+    rulesTitleStyle,
+    scoreboardWrapStyle,
+} from "./game.styles";
 
 const contractTypeToBidType: Record<number, BidType> = {
     0: "Low",
@@ -30,6 +48,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [gameState, setGameState] = React.useState<any>(null);
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
+    const [showRules, setShowRules] = React.useState(false);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
     const [currentTrick, setCurrentTrick] = React.useState<Card[]>([]);
 
@@ -334,73 +353,25 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     }, [token, user, gameId]);
 
     return (
-        <div style={{
-            minHeight: "100vh",
-            backgroundColor: "#35654d",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            padding: "16px",
-            gap: "12px",
-            boxSizing: "border-box",
-    }}>
-        <div
-            style={{
-                width: "clamp(500px, 90vw, 1000px)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "10px",
-                flexWrap: "wrap",
-            }}
-        >
+        <div style={gamePageStyle}>
+        <div style={gameTopActionsStyle}>
             <button
                 type="button"
                 onClick={onLeaveTable}
-                style={{
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.35)",
-                    background: "rgba(0,0,0,0.15)",
-                    color: "#f5f5f5",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                }}
+                style={backToTablesButtonStyle}
             >
                 Back to tables
             </button>
             <button
                 type="button"
                 onClick={onLogout}
-                style={{
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "transparent",
-                    color: "rgba(255,255,255,0.85)",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                }}
+                style={gameLogoutButtonStyle}
             >
                 Log out
             </button>
         </div>
         {scoreboard ? (
-            <div
-                style={{
-                    width: "clamp(500px, 90vw, 1000px)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                    padding: "10px 16px",
-                    borderRadius: "10px",
-                    backgroundColor: "rgba(0,0,0,0.2)",
-                    boxSizing: "border-box",
-                }}
-            >
+            <div style={scoreboardWrapStyle}>
                 {myTeamId == null ? (
                     <>
                         <span style={statPill("neutral", "md")}>
@@ -449,34 +420,20 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     )}
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
-                <div
-                    style={{
-                        position: "relative",
-                        width: "100%",
-                        flex: 1,
-                        minHeight: 0,
-                        alignSelf: "stretch",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                    }}
-                >
-                    <div style={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
+                <div style={handAreaWrapStyle}>
+                    <div style={handTopRightActionsStyle}>
                         <span style={statPill("blue", "xs")}>Blue team</span>
+                        <button
+                            type="button"
+                            onClick={() => setShowRules(true)}
+                            aria-label="Open rules"
+                            title="Rules"
+                            style={rulesButtonStyle}
+                        >
+                            ?
+                        </button>
                     </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            gap: "8px",
-                            minWidth: 0,
-                            flexWrap: "wrap",
-                            paddingRight: "88px",
-                            boxSizing: "border-box",
-                        }}
-                    >
+                    <div style={myNameRowStyle}>
                         <span
                             style={statPill(myNameHighlighted ? "blue" : "neutral", "md", {
                                 fontWeight: 600,
@@ -490,7 +447,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                         </span>
                     </div>
                     {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
-                    <div style={{ display: "flex", gap: "8px", justifyContent: "center", flex: 1 }}>
+                    <div style={handCardsRowStyle}>
                         {cards.map((card, index) => (
                             <PlayingCard
                                 key={`${card.suit}-${card.value}-${index}`}
@@ -507,6 +464,83 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                     </div>
                 </div>
             </WhiteBox>
+            {showRules ? (
+                <div style={rulesModalBackdropStyle} onClick={() => setShowRules(false)}>
+                    <div style={rulesModalStyle} onClick={(e) => e.stopPropagation()}>
+                        <div style={rulesHeaderStyle}>
+                            <h2 style={rulesTitleStyle}>BID EUCHRE RULES (Play to 21)</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowRules(false)}
+                                style={rulesCloseButtonStyle}
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        <div style={rulesGridStyle}>
+                            <div><strong>Players</strong></div>
+                            <div>4 players, 2 teams of 2</div>
+                            <div>Partners sit across from each other</div>
+
+                            <div><strong>Deck</strong></div>
+                            <div>9, 10, J, Q, K, A (24 cards total)</div>
+
+                            <div><strong>Dealing</strong></div>
+                            <div>6 cards per player</div>
+
+                            <div><strong>Winning</strong></div>
+                            <div>First team to 21 points wins</div>
+
+                            <div><strong>Scoring</strong></div>
+                            <div>If bidding team makes their bid: Gain points equal to bid</div>
+                            <div>If bidding team fails: Lose points equal to bid</div>
+                            <div>Non-bidding team: 1 point per trick won</div>
+
+                            <div><strong>Bidding</strong></div>
+                            <div>Starting left of dealer, each player:</div>
+                            <div>Bids number of tricks (0-6), or</div>
+                            <div>Passes</div>
+                            <div>No minimum bid</div>
+                            <div>Highest bidder:</div>
+                            <div>Chooses High, Low, or Suited (Trump)</div>
+                            <div>Must win their bid</div>
+
+                            <div><strong>Card Ranking</strong></div>
+                            <div><strong>Trump Suit (Suited only):</strong></div>
+                            <div>Right Bower (Jack of trump suit)</div>
+                            <div>Left Bower (Jack of same color as trump)</div>
+                            <div>A, K, Q, 10, 9</div>
+                            <div><strong>Standard (High):</strong></div>
+                            <div>A, K, Q, J, 10, 9</div>
+                            <div><strong>Low (Inverted):</strong></div>
+                            <div>9, 10, J, Q, K, A</div>
+
+                            <div><strong>Bid Types (ALL IN ONE PLACE)</strong></div>
+                            <div><strong>Suited Bid (Trump)</strong></div>
+                            <div>Bidder chooses a trump suit</div>
+                            <div>Uses trump ranking above</div>
+                            <div>Trump beats all non-trump</div>
+                            <div><strong>High Bid (No Trump)</strong></div>
+                            <div>No trump suit</div>
+                            <div>Uses standard ranking above</div>
+                            <div><strong>Low Bid (No Trump)</strong></div>
+                            <div>No trump suit</div>
+                            <div>Uses inverted ranking above</div>
+                            <div>Goal is to take as few tricks as possible</div>
+
+                            <div><strong>Playing Tricks</strong></div>
+                            <div>Player left of dealer leads first</div>
+                            <div>Must follow suit if possible</div>
+                            <div>If unable to follow suit: May play any card</div>
+                            <div><strong>Winner of trick:</strong></div>
+                            <div>Suited: highest trump wins, otherwise highest of suit led</div>
+                            <div>High: highest card of suit led</div>
+                            <div>Low: lowest card of suit led</div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
