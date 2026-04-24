@@ -31,6 +31,24 @@ export const lobbyTitleWrapStyle: React.CSSProperties = { textAlign: "left" };
 export const lobbyTitleStyle: React.CSSProperties = { margin: "0 0 6px 0", fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 };
 export const lobbySubtitleStyle: React.CSSProperties = { margin: 0, opacity: 0.85, fontSize: "15px", lineHeight: 1.45 };
 
+export const lobbyHeaderActionsStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    flexWrap: "wrap",
+};
+
+export const lobbyRulesButtonStyle: React.CSSProperties = {
+    padding: "8px 14px",
+    borderRadius: "8px",
+    border: "1px solid rgba(147, 197, 253, 0.65)",
+    backgroundColor: "rgba(219, 234, 254, 0.2)",
+    color: "#dbeafe",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: 600,
+};
+
 export const lobbyLogoutButtonStyle: React.CSSProperties = {
     padding: "8px 14px",
     borderRadius: "8px",
