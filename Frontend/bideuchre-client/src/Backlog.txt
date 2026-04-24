@@ -1,3 +1,0 @@
-Make things adapabtable for different size pages
-Score, player, and disabled pulled in from backend/db 
-When making trick box, pulling in played cards from card box after they disappear (updating the remove card function in game.tsx)
