@@ -9,6 +9,10 @@ import { Bid, BidType, Suit, Card } from '../types';
 import { statPill } from '../ui/statPill';
 import {
     backToTablesButtonStyle,
+    gameOverCloseButtonStyle,
+    gameOverMessageStyle,
+    gameOverModalStyle,
+    gameOverTitleStyle,
     gameLogoutButtonStyle,
     gamePageStyle,
     gameTopActionsStyle,
@@ -49,6 +53,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     const [gameState, setGameState] = React.useState<any>(null);
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
     const [showRules, setShowRules] = React.useState(false);
+    const [showGameResult, setShowGameResult] = React.useState(false);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
     const [currentTrick, setCurrentTrick] = React.useState<Card[]>([]);
 
@@ -248,6 +253,16 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
         return p?.name ?? "You";
     }, [gameState?.players, myPlayerId]);
 
+    const gameResult = React.useMemo(() => {
+        if (gameState?.type !== "GAME_COMPLETE" || myTeamId == null) return null;
+        const winnerTeamId = Number(gameState?.winnerTeamId);
+        if (winnerTeamId !== 1 && winnerTeamId !== 2) return null;
+        return {
+            didWin: winnerTeamId === myTeamId,
+            winnerTeamId,
+        };
+    }, [gameState?.type, gameState?.winnerTeamId, myTeamId]);
+
     const handleBidSubmit = (bid: Bid) => {
 
         console.log("Frontend: Bid button clicked", bid);
@@ -315,6 +330,9 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
             (state: any) => {
                 setGameState(state);
                 setBiddingPhase(state?.phase !== "PLAYING");
+                if (state?.type === "GAME_COMPLETE") {
+                    setShowGameResult(true);
+                }
                 if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
                     setCurrentTrick([]);
                 }
@@ -532,6 +550,25 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                             <div>High: highest card of suit led</div>
                             <div>Low: lowest card of suit led</div>
                         </div>
+                    </div>
+                </div>
+            ) : null}
+            {showGameResult && gameResult ? (
+                <div style={rulesModalBackdropStyle} onClick={() => setShowGameResult(false)}>
+                    <div style={gameOverModalStyle} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={gameOverTitleStyle}>{gameResult.didWin ? "You won!" : "You lost."}</h2>
+                        <p style={gameOverMessageStyle}>
+                            {gameResult.didWin
+                                ? "Your team reached 21 points first."
+                                : "The other team reached 21 points first."}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowGameResult(false)}
+                            style={gameOverCloseButtonStyle}
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             ) : null}

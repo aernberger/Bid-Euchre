@@ -159,3 +159,40 @@ export const rulesGridStyle: React.CSSProperties = {
     color: "#111827",
     lineHeight: 1.45,
 };
+
+export const gameOverModalStyle: React.CSSProperties = {
+    width: "min(440px, 92vw)",
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    border: "1px solid #d1d5db",
+    padding: "20px",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    alignItems: "center",
+    textAlign: "center",
+};
+
+export const gameOverTitleStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: "28px",
+    lineHeight: 1.2,
+    color: "#111827",
+};
+
+export const gameOverMessageStyle: React.CSSProperties = {
+    margin: 0,
+    fontSize: "16px",
+    color: "#374151",
+};
+
+export const gameOverCloseButtonStyle: React.CSSProperties = {
+    border: "1px solid #d1d5db",
+    backgroundColor: "#f9fafb",
+    color: "#111827",
+    borderRadius: "8px",
+    padding: "8px 14px",
+    cursor: "pointer",
+    fontWeight: 600,
+};
