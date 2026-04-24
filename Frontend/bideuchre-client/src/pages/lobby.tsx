@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import RulesModal from "../components/RulesModal";
 import {
     connectSocket,
     subscribeLobby,
@@ -10,6 +11,7 @@ import {
     lobbyContainerStyle,
     lobbyEmptyStyle,
     lobbyErrorStyle,
+    lobbyHeaderActionsStyle,
     lobbyHeaderStyle,
     lobbyJoinButtonStyle,
     lobbyListItemStyle,
@@ -19,6 +21,7 @@ import {
     lobbyPlayerCountStyle,
     lobbyPlayerInfoStyle,
     lobbyPlayerNamesStyle,
+    lobbyRulesButtonStyle,
     lobbySectionStyle,
     lobbySectionTitleStyle,
     lobbySubtitleStyle,
@@ -37,6 +40,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
     const [tables, setTables] = useState<LobbyGameSummary[]>([]);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showRules, setShowRules] = useState(false);
 
     const displayName =
         (typeof user?.user_metadata?.username === "string" && user.user_metadata.username) ||
@@ -92,13 +96,22 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                             Open a new table or join one that has not started yet (waiting for players).
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        style={lobbyLogoutButtonStyle}
-                    >
-                        Log out
-                    </button>
+                    <div style={lobbyHeaderActionsStyle}>
+                        <button
+                            type="button"
+                            onClick={() => setShowRules(true)}
+                            style={lobbyRulesButtonStyle}
+                        >
+                            Rules
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            style={lobbyLogoutButtonStyle}
+                        >
+                            Log out
+                        </button>
+                    </div>
                 </header>
 
                 <button
@@ -150,6 +163,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                     )}
                 </section>
             </div>
+            {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
         </div>
     );
 }

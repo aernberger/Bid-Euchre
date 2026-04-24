@@ -4,6 +4,7 @@ import PlayingCard from '../components/PlayingCard';
 import WhiteBox from '../components/WhiteBox';
 import BiddingBox from '../components/BiddingBox';
 import GameBox from '../components/GameBox';
+import RulesModal from '../components/RulesModal';
 import { placeBid, connectSocket, registerGameListeners, playCard, joinGameRoom } from '../sockets/socket';
 import { Bid, BidType, Suit, Card } from '../types';
 import { statPill } from '../ui/statPill';
@@ -15,18 +16,13 @@ import {
     gameOverTitleStyle,
     gameLogoutButtonStyle,
     gamePageStyle,
+    gameRulesButtonStyle,
     gameTopActionsStyle,
+    gameTopActionsRightStyle,
     handAreaWrapStyle,
     handCardsRowStyle,
-    handTopRightActionsStyle,
     myNameRowStyle,
-    rulesButtonStyle,
-    rulesCloseButtonStyle,
-    rulesGridStyle,
-    rulesHeaderStyle,
     rulesModalBackdropStyle,
-    rulesModalStyle,
-    rulesTitleStyle,
     scoreboardWrapStyle,
 } from "./game.styles";
 
@@ -374,13 +370,22 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
             >
                 Back to tables
             </button>
-            <button
-                type="button"
-                onClick={onLogout}
-                style={gameLogoutButtonStyle}
-            >
-                Log out
-            </button>
+            <div style={gameTopActionsRightStyle}>
+                <button
+                    type="button"
+                    onClick={() => setShowRules(true)}
+                    style={gameRulesButtonStyle}
+                >
+                    Rules
+                </button>
+                <button
+                    type="button"
+                    onClick={onLogout}
+                    style={gameLogoutButtonStyle}
+                >
+                    Log out
+                </button>
+            </div>
         </div>
         {scoreboard ? (
             <div style={scoreboardWrapStyle}>
@@ -433,18 +438,6 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
                 <div style={handAreaWrapStyle}>
-                    <div style={handTopRightActionsStyle}>
-                        <span style={statPill("blue", "xs")}>Blue team</span>
-                        <button
-                            type="button"
-                            onClick={() => setShowRules(true)}
-                            aria-label="Open rules"
-                            title="Rules"
-                            style={rulesButtonStyle}
-                        >
-                            ?
-                        </button>
-                    </div>
                     <div style={myNameRowStyle}>
                         <span
                             style={statPill(myNameHighlighted ? "blue" : "neutral", "md", {
@@ -476,83 +469,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                     </div>
                 </div>
             </WhiteBox>
-            {showRules ? (
-                <div style={rulesModalBackdropStyle} onClick={() => setShowRules(false)}>
-                    <div style={rulesModalStyle} onClick={(e) => e.stopPropagation()}>
-                        <div style={rulesHeaderStyle}>
-                            <h2 style={rulesTitleStyle}>BID EUCHRE RULES (Play to 21)</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowRules(false)}
-                                style={rulesCloseButtonStyle}
-                            >
-                                Close
-                            </button>
-                        </div>
-
-                        <div style={rulesGridStyle}>
-                            <div><strong>Players</strong></div>
-                            <div>4 players, 2 teams of 2</div>
-                            <div>Partners sit across from each other</div>
-
-                            <div><strong>Deck</strong></div>
-                            <div>9, 10, J, Q, K, A (24 cards total)</div>
-
-                            <div><strong>Dealing</strong></div>
-                            <div>6 cards per player</div>
-
-                            <div><strong>Winning</strong></div>
-                            <div>First team to 21 points wins</div>
-
-                            <div><strong>Scoring</strong></div>
-                            <div>If bidding team makes their bid: Gain points equal to bid</div>
-                            <div>If bidding team fails: Lose points equal to bid</div>
-                            <div>Non-bidding team: 1 point per trick won</div>
-
-                            <div><strong>Bidding</strong></div>
-                            <div>Starting left of dealer, each player:</div>
-                            <div>Bids number of tricks (0-6), or</div>
-                            <div>Passes</div>
-                            <div>No minimum bid</div>
-                            <div>Highest bidder:</div>
-                            <div>Chooses High, Low, or Suited (Trump)</div>
-                            <div>Must win their bid</div>
-
-                            <div><strong>Card Ranking</strong></div>
-                            <div><strong>Trump Suit (Suited only):</strong></div>
-                            <div>Right Bower (Jack of trump suit)</div>
-                            <div>Left Bower (Jack of same color as trump)</div>
-                            <div>A, K, Q, 10, 9</div>
-                            <div><strong>Standard (High):</strong></div>
-                            <div>A, K, Q, J, 10, 9</div>
-                            <div><strong>Low (Inverted):</strong></div>
-                            <div>9, 10, J, Q, K, A</div>
-
-                            <div><strong>Bid Types (ALL IN ONE PLACE)</strong></div>
-                            <div><strong>Suited Bid (Trump)</strong></div>
-                            <div>Bidder chooses a trump suit</div>
-                            <div>Uses trump ranking above</div>
-                            <div>Trump beats all non-trump</div>
-                            <div><strong>High Bid (No Trump)</strong></div>
-                            <div>No trump suit</div>
-                            <div>Uses standard ranking above</div>
-                            <div><strong>Low Bid (No Trump)</strong></div>
-                            <div>No trump suit</div>
-                            <div>Uses inverted ranking above</div>
-                            <div>Goal is to take as few tricks as possible</div>
-
-                            <div><strong>Playing Tricks</strong></div>
-                            <div>Player left of dealer leads first</div>
-                            <div>Must follow suit if possible</div>
-                            <div>If unable to follow suit: May play any card</div>
-                            <div><strong>Winner of trick:</strong></div>
-                            <div>Suited: highest trump wins, otherwise highest of suit led</div>
-                            <div>High: highest card of suit led</div>
-                            <div>Low: lowest card of suit led</div>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+            {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
             {showGameResult && gameResult ? (
                 <div style={rulesModalBackdropStyle} onClick={() => setShowGameResult(false)}>
                     <div style={gameOverModalStyle} onClick={(e) => e.stopPropagation()}>
