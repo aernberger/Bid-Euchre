@@ -21,10 +21,10 @@ export const lobbyContainerStyle: React.CSSProperties = {
 
 export const lobbyHeaderStyle: React.CSSProperties = {
     display: "flex",
-    justifyContent: "space-between",
+    flexDirection: "column",
+    justifyContent: "flex-start",
     alignItems: "flex-start",
     gap: "12px",
-    flexWrap: "wrap",
 };
 
 export const lobbyTitleWrapStyle: React.CSSProperties = { textAlign: "left" };
@@ -34,8 +34,8 @@ export const lobbySubtitleStyle: React.CSSProperties = { margin: 0, opacity: 0.8
 export const lobbyHeaderActionsStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
-    flexWrap: "wrap",
+    justifyContent: "space-between",
+    width: "100%",
 };
 
 export const lobbyRulesButtonStyle: React.CSSProperties = {
