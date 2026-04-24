@@ -88,22 +88,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
         <div style={lobbyPageStyle}>
             <div style={lobbyContainerStyle}>
                 <header style={lobbyHeaderStyle}>
-                    <div style={lobbyTitleWrapStyle}>
-                        <h1 style={lobbyTitleStyle}>
-                            Tables
-                        </h1>
-                        <p style={lobbySubtitleStyle}>
-                            Open a new table or join one that has not started yet (waiting for players).
-                        </p>
-                    </div>
                     <div style={lobbyHeaderActionsStyle}>
-                        <button
-                            type="button"
-                            onClick={() => setShowRules(true)}
-                            style={lobbyRulesButtonStyle}
-                        >
-                            Rules
-                        </button>
                         <button
                             type="button"
                             onClick={onLogout}
@@ -111,6 +96,21 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                         >
                             Log out
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowRules(true)}
+                            style={lobbyRulesButtonStyle}
+                        >
+                            Rules
+                        </button>
+                    </div>
+                    <div style={lobbyTitleWrapStyle}>
+                        <h1 style={lobbyTitleStyle}>
+                            Tables
+                        </h1>
+                        <p style={lobbySubtitleStyle}>
+                            Open a new table or join one that has not started yet (waiting for players).
+                        </p>
                     </div>
                 </header>
 
