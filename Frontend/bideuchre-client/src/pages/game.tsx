@@ -136,12 +136,6 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
         };
     }, [gameState?.players, myPlayerId]);
 
-    // const myPlayerName = React.useMemo(() => {
-    //     const players = gameState?.players ?? [];
-    //     const me = players.find((p: { id: string }) => p.id === myPlayerId);
-    //     return me?.name ?? "—";
-    // }, [gameState?.players, myPlayerId]);
-
     const seatTurnTone = React.useMemo(() => {
         const players = gameState?.players ?? [];
         const myIndex = players.findIndex((p: { id: string }) => p.id === myPlayerId);
