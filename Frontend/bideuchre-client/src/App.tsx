@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Game from "./pages/game";
 import Login from "./pages/login";
 import Lobby from "./pages/lobby";
+import PlayerPopup from "./components/PlayerPopup";
 import { disconnectSocket, leaveGameRoom } from "./sockets/socket";
 
 const ACTIVE_GAME_KEY = "be-active-game-id";
@@ -93,6 +94,7 @@ export default function App() {
             ) : (
                 <Lobby token={token} user={user} onEnterGame={enterGame} onLogout={handleLogout} />
             )}
+            {token ? <PlayerPopup /> : null}
         </div>
     );
 }
