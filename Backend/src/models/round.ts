@@ -16,6 +16,7 @@ export class Round {
   private tricks: Trick[] = []
   private currentTrick: Trick
   private teamTrickCounts: Map<number, number> = new Map()
+  private readonly activeTurnOrder: string[]
 
   constructor(
     private readonly contract: Contract,
@@ -27,6 +28,7 @@ export class Round {
       this.teamTrickCounts.set(team.teamId, 0)
     })
 
+    this.activeTurnOrder = this.buildActiveTurnOrder()
     this.currentTrick = this.createNewTrick(this.startingLeaderId)
   }
 
@@ -92,16 +94,39 @@ export class Round {
   }
 
   private createNewTrick(leaderId?: string): Trick {
-    const maxPlays = this.contract.loner ? 3 : 4
+    const maxPlays = this.activeTurnOrder.length
     return new Trick(this.contract, maxPlays, leaderId)
   }
 
   private getPlayerByOffset(startingPlayerId: string, offset: number): string {
-    const startIndex = this.turnOrder.findIndex(id => id === startingPlayerId)
+    const startIndex = this.activeTurnOrder.findIndex(id => id === startingPlayerId)
     if (startIndex === -1) {
       throw new Error("Could not determine next player order")
     }
-    return this.turnOrder[(startIndex + offset) % this.turnOrder.length]
+    return this.activeTurnOrder[(startIndex + offset) % this.activeTurnOrder.length]
+  }
+
+  private buildActiveTurnOrder(): string[] {
+    if (!this.contract.loner) {
+      return [...this.turnOrder]
+    }
+
+    const declarerTeam = this.teams.find(team => team.hasPlayer(this.contract.declarerId))
+    if (!declarerTeam) {
+      return [...this.turnOrder]
+    }
+
+    const declarerPartnerId = this.turnOrder.find(
+      playerId =>
+        playerId !== this.contract.declarerId &&
+        declarerTeam.hasPlayer(playerId)
+    )
+
+    if (!declarerPartnerId) {
+      return [...this.turnOrder]
+    }
+
+    return this.turnOrder.filter(playerId => playerId !== declarerPartnerId)
   }
 
   isComplete(): boolean {
