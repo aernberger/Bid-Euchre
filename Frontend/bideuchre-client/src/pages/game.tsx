@@ -4,9 +4,27 @@ import PlayingCard from '../components/PlayingCard';
 import WhiteBox from '../components/WhiteBox';
 import BiddingBox from '../components/BiddingBox';
 import GameBox from '../components/GameBox';
+import RulesModal from '../components/RulesModal';
 import { placeBid, connectSocket, registerGameListeners, playCard, joinGameRoom } from '../sockets/socket';
 import { Bid, BidType, Suit, Card } from '../types';
 import { statPill } from '../ui/statPill';
+import {
+    backToTablesButtonStyle,
+    gameOverCloseButtonStyle,
+    gameOverMessageStyle,
+    gameOverModalStyle,
+    gameOverTitleStyle,
+    gameLogoutButtonStyle,
+    gamePageStyle,
+    gameRulesButtonStyle,
+    gameTopActionsStyle,
+    gameTopActionsRightStyle,
+    handAreaWrapStyle,
+    handCardsRowStyle,
+    myNameRowStyle,
+    rulesModalBackdropStyle,
+    scoreboardWrapStyle,
+} from "./game.styles";
 
 const contractTypeToBidType: Record<number, BidType> = {
     0: "Low",
@@ -30,6 +48,8 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     const [biddingPhase, setBiddingPhase] = React.useState(true);
     const [gameState, setGameState] = React.useState<any>(null);
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
+    const [showRules, setShowRules] = React.useState(false);
+    const [showGameResult, setShowGameResult] = React.useState(false);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
     const [currentTrick, setCurrentTrick] = React.useState<Card[]>([]);
 
@@ -116,12 +136,6 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
             right: rightP?.name ?? "Player",
         };
     }, [gameState?.players, myPlayerId]);
-
-    // const myPlayerName = React.useMemo(() => {
-    //     const players = gameState?.players ?? [];
-    //     const me = players.find((p: { id: string }) => p.id === myPlayerId);
-    //     return me?.name ?? "—";
-    // }, [gameState?.players, myPlayerId]);
 
     const seatTurnTone = React.useMemo(() => {
         const players = gameState?.players ?? [];
@@ -235,6 +249,16 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
         return p?.name ?? "You";
     }, [gameState?.players, myPlayerId]);
 
+    const gameResult = React.useMemo(() => {
+        if (gameState?.type !== "GAME_COMPLETE" || myTeamId == null) return null;
+        const winnerTeamId = Number(gameState?.winnerTeamId);
+        if (winnerTeamId !== 1 && winnerTeamId !== 2) return null;
+        return {
+            didWin: winnerTeamId === myTeamId,
+            winnerTeamId,
+        };
+    }, [gameState?.type, gameState?.winnerTeamId, myTeamId]);
+
     const handleBidSubmit = (bid: Bid) => {
 
         console.log("Frontend: Bid button clicked", bid);
@@ -302,6 +326,9 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
             (state: any) => {
                 setGameState(state);
                 setBiddingPhase(state?.phase !== "PLAYING");
+                if (state?.type === "GAME_COMPLETE") {
+                    setShowGameResult(true);
+                }
                 if (state?.type === "ROUND_COMPLETE" || state?.trickCompleted || state?.phase !== "PLAYING") {
                     setCurrentTrick([]);
                 }
@@ -334,73 +361,34 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     }, [token, user, gameId]);
 
     return (
-        <div style={{
-            minHeight: "100vh",
-            backgroundColor: "#35654d",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            padding: "16px",
-            gap: "12px",
-            boxSizing: "border-box",
-    }}>
-        <div
-            style={{
-                width: "clamp(500px, 90vw, 1000px)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "10px",
-                flexWrap: "wrap",
-            }}
-        >
+        <div style={gamePageStyle}>
+        <div style={gameTopActionsStyle}>
             <button
                 type="button"
                 onClick={onLeaveTable}
-                style={{
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.35)",
-                    background: "rgba(0,0,0,0.15)",
-                    color: "#f5f5f5",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                }}
+                style={backToTablesButtonStyle}
             >
                 Back to tables
             </button>
-            <button
-                type="button"
-                onClick={onLogout}
-                style={{
-                    padding: "8px 14px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "transparent",
-                    color: "rgba(255,255,255,0.85)",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                }}
-            >
-                Log out
-            </button>
+            <div style={gameTopActionsRightStyle}>
+                <button
+                    type="button"
+                    onClick={() => setShowRules(true)}
+                    style={gameRulesButtonStyle}
+                >
+                    Rules
+                </button>
+                <button
+                    type="button"
+                    onClick={onLogout}
+                    style={gameLogoutButtonStyle}
+                >
+                    Log out
+                </button>
+            </div>
         </div>
         {scoreboard ? (
-            <div
-                style={{
-                    width: "clamp(500px, 90vw, 1000px)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                    padding: "10px 16px",
-                    borderRadius: "10px",
-                    backgroundColor: "rgba(0,0,0,0.2)",
-                    boxSizing: "border-box",
-                }}
-            >
+            <div style={scoreboardWrapStyle}>
                 {myTeamId == null ? (
                     <>
                         <span style={statPill("neutral", "md")}>
@@ -449,34 +437,8 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     )}
            
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
-                <div
-                    style={{
-                        position: "relative",
-                        width: "100%",
-                        flex: 1,
-                        minHeight: 0,
-                        alignSelf: "stretch",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px",
-                    }}
-                >
-                    <div style={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
-                        <span style={statPill("blue", "xs")}>Blue team</span>
-                    </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            width: "100%",
-                            gap: "8px",
-                            minWidth: 0,
-                            flexWrap: "wrap",
-                            paddingRight: "88px",
-                            boxSizing: "border-box",
-                        }}
-                    >
+                <div style={handAreaWrapStyle}>
+                    <div style={myNameRowStyle}>
                         <span
                             style={statPill(myNameHighlighted ? "blue" : "neutral", "md", {
                                 fontWeight: 600,
@@ -490,7 +452,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                         </span>
                     </div>
                     {/* Cards are clickable only when isPlayingTurn; click plays card and moves it to center */}
-                    <div style={{ display: "flex", gap: "8px", justifyContent: "center", flex: 1 }}>
+                    <div style={handCardsRowStyle}>
                         {cards.map((card, index) => (
                             <PlayingCard
                                 key={`${card.suit}-${card.value}-${index}`}
@@ -507,6 +469,26 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                     </div>
                 </div>
             </WhiteBox>
+            {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+            {showGameResult && gameResult ? (
+                <div style={rulesModalBackdropStyle} onClick={() => setShowGameResult(false)}>
+                    <div style={gameOverModalStyle} onClick={(e) => e.stopPropagation()}>
+                        <h2 style={gameOverTitleStyle}>{gameResult.didWin ? "You won!" : "You lost."}</h2>
+                        <p style={gameOverMessageStyle}>
+                            {gameResult.didWin
+                                ? "Your team reached 21 points first."
+                                : "The other team reached 21 points first."}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowGameResult(false)}
+                            style={gameOverCloseButtonStyle}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

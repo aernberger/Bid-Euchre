@@ -1,10 +1,33 @@
 import React, { useEffect, useState, useCallback } from "react";
+import RulesModal from "../components/RulesModal";
 import {
     connectSocket,
     subscribeLobby,
     createGameOnServer,
     LobbyGameSummary,
 } from "../sockets/socket";
+import {
+    createTableButtonStyle,
+    lobbyContainerStyle,
+    lobbyEmptyStyle,
+    lobbyErrorStyle,
+    lobbyHeaderActionsStyle,
+    lobbyHeaderStyle,
+    lobbyJoinButtonStyle,
+    lobbyListItemStyle,
+    lobbyListStyle,
+    lobbyLogoutButtonStyle,
+    lobbyPageStyle,
+    lobbyPlayerCountStyle,
+    lobbyPlayerInfoStyle,
+    lobbyPlayerNamesStyle,
+    lobbyRulesButtonStyle,
+    lobbySectionStyle,
+    lobbySectionTitleStyle,
+    lobbySubtitleStyle,
+    lobbyTitleStyle,
+    lobbyTitleWrapStyle,
+} from "./lobby.styles";
 
 interface LobbyProps {
     token: string;
@@ -17,6 +40,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
     const [tables, setTables] = useState<LobbyGameSummary[]>([]);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showRules, setShowRules] = useState(false);
 
     const displayName =
         (typeof user?.user_metadata?.username === "string" && user.user_metadata.username) ||
@@ -61,143 +85,67 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
     );
 
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                backgroundColor: "#1a3d2e",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                padding: "24px 16px",
-                boxSizing: "border-box",
-                color: "#f0f4f0",
-            }}
-        >
-            <div
-                style={{
-                    width: "min(520px, 100%)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "20px",
-                }}
-            >
-                <header
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <div style={{ textAlign: "left" }}>
-                        <h1 style={{ margin: "0 0 6px 0", fontSize: "clamp(1.35rem, 4vw, 1.75rem)", fontWeight: 700 }}>
+        <div style={lobbyPageStyle}>
+            <div style={lobbyContainerStyle}>
+                <header style={lobbyHeaderStyle}>
+                    <div style={lobbyHeaderActionsStyle}>
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            style={lobbyLogoutButtonStyle}
+                        >
+                            Log out
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowRules(true)}
+                            style={lobbyRulesButtonStyle}
+                        >
+                            Rules
+                        </button>
+                    </div>
+                    <div style={lobbyTitleWrapStyle}>
+                        <h1 style={lobbyTitleStyle}>
                             Tables
                         </h1>
-                        <p style={{ margin: 0, opacity: 0.85, fontSize: "15px", lineHeight: 1.45 }}>
+                        <p style={lobbySubtitleStyle}>
                             Open a new table or join one that has not started yet (waiting for players).
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        style={{
-                            padding: "8px 14px",
-                            borderRadius: "8px",
-                            border: "1px solid rgba(255,255,255,0.25)",
-                            background: "transparent",
-                            color: "#f0f4f0",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
-                    >
-                        Log out
-                    </button>
                 </header>
 
                 <button
                     type="button"
                     disabled={creating}
                     onClick={handleCreate}
-                    style={{
-                        padding: "14px 18px",
-                        borderRadius: "10px",
-                        border: "none",
-                        background: creating ? "#4a6b58" : "#2d6a4f",
-                        color: "#fff",
-                        fontSize: "16px",
-                        fontWeight: 600,
-                        cursor: creating ? "wait" : "pointer",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                    }}
+                    style={createTableButtonStyle(creating)}
                 >
                     {creating ? "Creating table…" : "Create new table"}
                 </button>
 
                 {error ? (
-                    <div
-                        role="alert"
-                        style={{
-                            padding: "12px 14px",
-                            borderRadius: "8px",
-                            background: "rgba(180, 40, 40, 0.2)",
-                            border: "1px solid rgba(255,120,120,0.35)",
-                            fontSize: "14px",
-                            textAlign: "left",
-                        }}
-                    >
+                    <div role="alert" style={lobbyErrorStyle}>
                         {error}
                     </div>
                 ) : null}
 
-                <section style={{ textAlign: "left" }}>
-                    <h2 style={{ margin: "0 0 12px 0", fontSize: "1.05rem", fontWeight: 600, opacity: 0.95 }}>
+                <section style={lobbySectionStyle}>
+                    <h2 style={lobbySectionTitleStyle}>
                         Join a table
                     </h2>
                     {tables.length === 0 ? (
-                        <p style={{ margin: 0, opacity: 0.75, fontSize: "15px" }}>
+                        <p style={lobbyEmptyStyle}>
                             No open tables yet. Create one and share the room with friends.
                         </p>
                     ) : (
-                        <ul
-                            style={{
-                                listStyle: "none",
-                                margin: 0,
-                                padding: 0,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "10px",
-                            }}
-                        >
+                        <ul style={lobbyListStyle}>
                             {tables.map((g) => (
-                                <li
-                                    key={g.id}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        gap: "12px",
-                                        padding: "14px 16px",
-                                        borderRadius: "10px",
-                                        background: "rgba(0,0,0,0.22)",
-                                        border: "1px solid rgba(255,255,255,0.08)",
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                        <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "4px" }}>
+                                <li key={g.id} style={lobbyListItemStyle}>
+                                    <div style={lobbyPlayerInfoStyle}>
+                                        <div style={lobbyPlayerCountStyle}>
                                             {g.playerCount} / 4 players
                                         </div>
-                                        <div
-                                            style={{
-                                                fontSize: "13px",
-                                                opacity: 0.8,
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                            }}
-                                            title={g.players.map((p) => p.name).join(", ")}
-                                        >
+                                        <div style={lobbyPlayerNamesStyle} title={g.players.map((p) => p.name).join(", ")}>
                                             {g.players.map((p) => p.name).join(", ") || "Empty"}
                                         </div>
                                     </div>
@@ -205,16 +153,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                                         type="button"
                                         onClick={() => handleJoin(g.id)}
                                         disabled={g.playerCount >= 4}
-                                        style={{
-                                            padding: "10px 16px",
-                                            borderRadius: "8px",
-                                            border: "none",
-                                            background: g.playerCount >= 4 ? "#555" : "#40916c",
-                                            color: "#fff",
-                                            fontWeight: 600,
-                                            cursor: g.playerCount >= 4 ? "not-allowed" : "pointer",
-                                            flexShrink: 0,
-                                        }}
+                                        style={lobbyJoinButtonStyle(g.playerCount >= 4)}
                                     >
                                         Join
                                     </button>
@@ -224,6 +163,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                     )}
                 </section>
             </div>
+            {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
         </div>
     );
 }

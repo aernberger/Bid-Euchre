@@ -4,6 +4,21 @@ import PlayingCard from "./PlayingCard";
 import CardBack from "./CardBack";
 import { statPill } from "../ui/statPill";
 import { Bid, Card } from '../types';
+import {
+  boardGridStyle,
+  centerPanelStyle,
+  currentTrickRowStyle,
+  leftStackCardStyle,
+  rightStackCardStyle,
+  seatColumnStyle,
+  sideSeatColumnStyle,
+  sideStackContainerStyle,
+  topStackCardStyle,
+  topStackContainerStyle,
+  trickSummaryLabelStyle,
+  trickSummaryRowStyle,
+  trickSummaryWrapStyle,
+} from "./GameBox.styles";
 
 interface GameBoxProperties {
   currentTrick: Card[];
@@ -84,46 +99,15 @@ export default function GameBox({
       width={width}
     >
         {/*this part uses the CSS grid*/}
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "grid",
-          overflow: "hidden",
-          gridTemplateColumns: "minmax(70px, 120px) 1fr minmax(70px, 120px)",
-          gridTemplateRows: "auto 1fr auto",
-          gap: "10px",
-          alignItems: "center",
-          justifyItems: "center",
-          padding: "8px",
-          boxSizing: "border-box",
-        }}
-      >
+      <div style={boardGridStyle}>
         {/* TOP OPPONENT - name + stacked cards */}
-        <div
-          style={{
-            gridColumn: "2",
-            gridRow: "1",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px",
-            justifyContent: "center",
-            minWidth: 0,
-          }}
-        >
+        <div style={seatColumnStyle("2", "1")}>
           <span style={namePillStyle("top", seatTurnTone.top)} title={opponentNames.top}>
             {opponentNames.top}
           </span>
-          <div
-            style={{
-              position: "relative",
-              width: "clamp(75px, 8vw, 95px)",
-              height: "clamp(45px, 7vw, 110px)",
-            }}
-          >
+          <div style={topStackContainerStyle}>
             {Array.from({ length: topCount }).map((_, i) => (
-              <div key={`top-${i}`} style={{ position: "absolute", left: i * stackOverlap, top: 0 }}>
+              <div key={`top-${i}`} style={topStackCardStyle(i, stackOverlap)}>
                 <CardBack />
               </div>
             ))}
@@ -131,31 +115,13 @@ export default function GameBox({
         </div>
 
         {/* LEFT OPPONENT - name + stacked cards */}
-        <div
-          style={{
-            gridColumn: "1",
-            gridRow: "2",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px",
-            alignSelf: "center",
-            justifyContent: "center",
-            minWidth: 0,
-          }}
-        >
+        <div style={sideSeatColumnStyle("1")}>
           <span style={namePillStyle("left", seatTurnTone.left)} title={opponentNames.left}>
             {opponentNames.left}
           </span>
-          <div
-            style={{
-              position: "relative",
-              width: "clamp(70px, 10vw, 120px)",
-              height: "clamp(70px, 10vw, 130px)",
-            }}
-          >
+          <div style={sideStackContainerStyle}>
             {Array.from({ length: leftCount }).map((_, i) => (
-              <div key={`left-${i}`} style={{ position: "absolute", left: "50%", top: i * sideStackOverlap, transform: "translateX(-50%) rotate(-90deg)", transformOrigin: "center" }}>
+              <div key={`left-${i}`} style={leftStackCardStyle(i, sideStackOverlap)}>
                 <CardBack />
               </div>
             ))}
@@ -163,26 +129,7 @@ export default function GameBox({
         </div>
 
         {/* CENTER — contract + trick in progress */}
-        <div
-          style={{
-            gridColumn: "2",
-            gridRow: "2",
-            width: "100%",
-            height: "100%",
-            minWidth: 0,
-            overflow: "hidden",
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            backgroundColor: "#fafafa",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "12px",
-            padding: "12px",
-            boxSizing: "border-box",
-          }}
-        >
+        <div style={centerPanelStyle}>
         <div
           style={statPill(bidPillVariant, "lg", {
             fontWeight: 800,
@@ -195,42 +142,18 @@ export default function GameBox({
         </div>
 
           {tricksThisHand ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "8px",
-                width: "100%",
-                maxWidth: "100%",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#6b7280",
-                  letterSpacing: "0.02em",
-                }}
-              >
+            <div style={trickSummaryWrapStyle}>
+              <span style={trickSummaryLabelStyle}>
                 Tricks this hand
               </span>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <div style={trickSummaryRowStyle}>
                 <span style={statPill("blue", "md")}>Blue team {tricksThisHand.ours}</span>
                 <span style={statPill("red", "md")}>Red team {tricksThisHand.theirs}</span>
               </div>
             </div>
           ) : null}
 
-          <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "center", flexWrap: "wrap", minWidth: 0, maxWidth: "100%" }}>
+          <div style={currentTrickRowStyle}>
             {currentTrick.length === 0 ? (
               <span style={statPill("neutral", "sm", { fontWeight: 600 })}>(No cards played yet)</span>
             ) : (
@@ -244,31 +167,13 @@ export default function GameBox({
         </div>
 
         {/* RIGHT OPPONENT - name + stacked cards */}
-        <div
-          style={{
-            gridColumn: "3",
-            gridRow: "2",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px",
-            alignSelf: "center",
-            justifyContent: "center",
-            minWidth: 0,
-          }}
-        >
+        <div style={sideSeatColumnStyle("3")}>
           <span style={namePillStyle("right", seatTurnTone.right)} title={opponentNames.right}>
             {opponentNames.right}
           </span>
-          <div
-            style={{
-              position: "relative",
-              width: "clamp(70px, 10vw, 120px)",
-              height: "clamp(70px, 10vw, 130px)",
-            }}
-          >
+          <div style={sideStackContainerStyle}>
             {Array.from({ length: rightCount }).map((_, i) => (
-              <div key={`right-${i}`} style={{ position: "absolute", left: "50%", top: i * sideStackOverlap, transform: "translateX(-50%) rotate(90deg)", transformOrigin: "center" }}>
+              <div key={`right-${i}`} style={rightStackCardStyle(i, sideStackOverlap)}>
                 <CardBack />
               </div>
             ))}

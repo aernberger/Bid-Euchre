@@ -1,4 +1,5 @@
 import React from "react";
+import { whiteBoxStyle } from "./WhiteBox.styles";
 
 interface WhiteBoxProperties {
     width?: string;
@@ -8,22 +9,7 @@ interface WhiteBoxProperties {
 
 const WhiteBox: React.FC<WhiteBoxProperties> = ({width = "clamp(533px, 60vw, 1200px)", height = "clamp(233px, 35vh, 525px)", children}) => {
     return (
-        <div style={{
-            width,
-            height,
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '8px',
-            boxSizing: 'border-box',
-            alignItems: 'center',
-            justifyContent: 'center'
-        
-
-        }}>
+        <div style={whiteBoxStyle(width, height)}>
             {children}
         </div>
 
