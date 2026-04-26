@@ -33,11 +33,11 @@ const contractTypeToBidType: Record<number, BidType> = {
 };
 
 interface GameProps {
-  token: string;
-  user: any;
-  gameId: string;
-  onLeaveTable: () => void;
-  onLogout: () => void;
+    token: string;
+    user: any;
+    gameId: string;
+    onLeaveTable: () => void;
+    onLogout: () => void;
 }
 
 export default function Game({ token, user, gameId, onLeaveTable, onLogout }: GameProps) {
@@ -50,6 +50,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
     const [myPlayerId, setMyPlayerId] = React.useState<string | null>(null);
     const [showRules, setShowRules] = React.useState(false);
     const [showGameResult, setShowGameResult] = React.useState(false);
+    const [connectionNotice, setConnectionNotice] = React.useState<string | null>(null);
     // State for cards currently in the center - synced from optimistic updates and server gameUpdates
     const [currentTrick, setCurrentTrick] = React.useState<Card[]>([]);
 
@@ -294,7 +295,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
         console.log("Frontend: Sending bid to socket", data);
 
         placeBid(data);
-};
+    };
 
 
     const isCardPlayable = (card: { suit: string; value: string }) =>
@@ -334,12 +335,7 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
                 }
                 if (state?.playedCards && Array.isArray(state.playedCards)) {
                     const faceToValue: Record<string, string> = {
-                        "9": "9",
-                        "10": "10",
-                        Jack: "J",
-                        Queen: "Q",
-                        King: "K",
-                        Ace: "A",
+                        "9": "9", "10": "10", Jack: "J", Queen: "Q", King: "K", Ace: "A",
                     };
                     setCurrentTrick(
                         state.playedCards.map((c: { suit: string; face: string }) => ({
@@ -352,6 +348,14 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
             (handData) => {
                 setCards(handData.cards);
                 setPlayableCards(handData.playableCards);
+            },
+            undefined,
+            ({ type, playerName }) => {
+                const msg = type === "disconnected"
+                    ? `${playerName} left the table`
+                    : `${playerName} rejoined the table`;
+                setConnectionNotice(msg);
+                setTimeout(() => setConnectionNotice(null), 4000);
             }
         );
 
@@ -362,80 +366,99 @@ export default function Game({ token, user, gameId, onLeaveTable, onLogout }: Ga
 
     return (
         <div style={gamePageStyle}>
-        <div style={gameTopActionsStyle}>
-            <button
-                type="button"
-                onClick={onLeaveTable}
-                style={backToTablesButtonStyle}
-            >
-                Back to tables
-            </button>
-            <div style={gameTopActionsRightStyle}>
+            {connectionNotice && (
+            <div style={{
+                position: "fixed",
+                bottom: 24,
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "#1e293b",
+                color: "#f1f5f9",
+                padding: "10px 20px",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                zIndex: 1000,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                pointerEvents: "none",
+            }}>
+                {connectionNotice}
+            </div>
+        )}
+            <div style={gameTopActionsStyle}>
                 <button
                     type="button"
-                    onClick={() => setShowRules(true)}
-                    style={gameRulesButtonStyle}
+                    onClick={onLeaveTable}
+                    style={backToTablesButtonStyle}
                 >
-                    Rules
+                    Back to tables
                 </button>
-                <button
-                    type="button"
-                    onClick={onLogout}
-                    style={gameLogoutButtonStyle}
-                >
-                    Log out
-                </button>
+                <div style={gameTopActionsRightStyle}>
+                    <button
+                        type="button"
+                        onClick={() => setShowRules(true)}
+                        style={gameRulesButtonStyle}
+                    >
+                        Rules
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onLogout}
+                        style={gameLogoutButtonStyle}
+                    >
+                        Log out
+                    </button>
+                </div>
             </div>
-        </div>
-        {scoreboard ? (
-            <div style={scoreboardWrapStyle}>
-                {myTeamId == null ? (
-                    <>
-                        <span style={statPill("neutral", "md")}>
-                            {scoreboard.leftLabel}: {scoreboard.left}
-                        </span>
-                        <span style={statPill("neutral", "md")}>
-                            {scoreboard.rightLabel}: {scoreboard.right}
-                        </span>
-                    </>
-                ) : (
-                    <>
-                        <span style={statPill("blue", "md")}>
-                            {scoreboard.leftLabel}: {scoreboard.left}
-                        </span>
-                        <span style={statPill("red", "md")}>
-                            {scoreboard.rightLabel}: {scoreboard.right}
-                        </span>
-                    </>
-                )}
-            </div>
-        ) : null}
-        {/* TOP AREA */}
-    {biddingPhase ? (
-            <BiddingBox
-                currentHighBid={currentHighBid}
-                onBidSubmit={handleBidSubmit}
-                isPlayerTurn={isPlayerBiddingTurn}
-                currentBidderName={currentBidderName}
-                turnStatusTone={bidTurnStatusTone}
-            />
+            {scoreboard ? (
+                <div style={scoreboardWrapStyle}>
+                    {myTeamId == null ? (
+                        <>
+                            <span style={statPill("neutral", "md")}>
+                                {scoreboard.leftLabel}: {scoreboard.left}
+                            </span>
+                            <span style={statPill("neutral", "md")}>
+                                {scoreboard.rightLabel}: {scoreboard.right}
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <span style={statPill("blue", "md")}>
+                                {scoreboard.leftLabel}: {scoreboard.left}
+                            </span>
+                            <span style={statPill("red", "md")}>
+                                {scoreboard.rightLabel}: {scoreboard.right}
+                            </span>
+                        </>
+                    )}
+                </div>
+            ) : null}
+            {/* TOP AREA */}
+            {biddingPhase ? (
+                <BiddingBox
+                    currentHighBid={currentHighBid}
+                    onBidSubmit={handleBidSubmit}
+                    isPlayerTurn={isPlayerBiddingTurn}
+                    currentBidderName={currentBidderName}
+                    turnStatusTone={bidTurnStatusTone}
+                />
             ) : (
-            // Pass currentTrick (not fakeTrick) so played cards show in center for all players
-            <GameBox
-                currentTrick={currentTrick}
-                bid={winningBid}
-                declarerName={declarerDisplayName}
-                contractBidRelative={contractBidRelative}
-                topCount={opponentCounts.top}
-                leftCount={opponentCounts.left}
-                rightCount={opponentCounts.right}
-                opponentNames={opponentNames}
-                seatTurnTone={seatTurnTone}
-                width="clamp(500px, 90vw, 1000px)"
-                tricksThisHand={tricksThisHand}
-            />
-    )}
-           
+                // Pass currentTrick (not fakeTrick) so played cards show in center for all players
+                <GameBox
+                    currentTrick={currentTrick}
+                    bid={winningBid}
+                    declarerName={declarerDisplayName}
+                    contractBidRelative={contractBidRelative}
+                    topCount={opponentCounts.top}
+                    leftCount={opponentCounts.left}
+                    rightCount={opponentCounts.right}
+                    opponentNames={opponentNames}
+                    seatTurnTone={seatTurnTone}
+                    width="clamp(500px, 90vw, 1000px)"
+                    tricksThisHand={tricksThisHand}
+                />
+            )}
+
             <WhiteBox width="clamp(500px, 90vw, 1000px)">
                 <div style={handAreaWrapStyle}>
                     <div style={myNameRowStyle}>

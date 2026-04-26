@@ -443,10 +443,15 @@ export class GameController {
     if (this.contract && (this.contract as any).declarerId === oldId) {
         (this.contract as any).declarerId = newId;
     }
-
     if (this.winningBid && this.winningBid.bidderId === oldId) {
         (this.winningBid as any).bidderId = newId;
     }
+
+    if (this.game) {
+        this.game.remapPlayerId(oldId, newId);
+    }
+
+    console.log(`[Remap] ${oldId.slice(0,8)} → ${newId.slice(0,8)}`);
 }
 
   public restoreHand(socketId: string, cards: Card[]): void {

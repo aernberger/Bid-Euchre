@@ -106,4 +106,15 @@ export class Game {
     }
     return Object.fromEntries(this.currentRound.getTeamTrickCounts())
   }
+
+  public remapPlayerId(oldId: string, newId: string): void {
+    if (this.currentRound) {
+        this.currentRound.remapPlayerId(oldId, newId);
+    }
+    const count = this.individualTrickCounts.get(oldId);
+    if (count !== undefined) {
+        this.individualTrickCounts.set(newId, count);
+        this.individualTrickCounts.delete(oldId);
+    }
+}
 }

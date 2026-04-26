@@ -154,7 +154,8 @@ export function registerGameListeners(
         cards: { suit: string; value: string }[];
         playableCards: { suit: string; value: string }[];
     }) => void,
-    onError?: (message: string) => void
+    onError?: (message: string) => void,
+    onPlayerConnectionChange?: (data: { type: string; playerName: string }) => void  // ← add
 ) {
     const sock = getSocket();
 
@@ -163,11 +164,7 @@ export function registerGameListeners(
         setGameState(state);
     };
 
-    const onYourHand = (
-        payload:
-            | { cards?: { suit: string; face: string }[]; playableCards?: { suit: string; face: string }[] }
-            | { suit: string; face: string }[]
-    ) => {
+    const onYourHand = (payload: any) => {
         const isLegacy = Array.isArray(payload);
         const cards = (isLegacy ? payload : (payload.cards ?? [])).map(toFrontendCard);
         const playableCards = isLegacy ? cards : (payload.playableCards ?? []).map(toFrontendCard);
@@ -179,13 +176,31 @@ export function registerGameListeners(
         alert(msg);
     };
 
+    const onPlayerDisconnected = (state: any) => {
+        const name = state?.players?.find((p: any) => p.id === state.disconnectedPlayerId)?.name
+            ?? "A player";
+        onPlayerConnectionChange?.({ type: "disconnected", playerName: name });
+        setGameState(state);
+    };
+
+    const onPlayerReconnected = (state: any) => {
+        const name = state?.players?.find((p: any) => p.id === state.reconnectedPlayerId)?.name
+            ?? "A player";
+        onPlayerConnectionChange?.({ type: "reconnected", playerName: name });
+        setGameState(state);
+    };
+
     sock.on("gameUpdate", onGameUpdate);
     sock.on("yourHand", onYourHand);
     sock.on("errorMessage", onErrorMessage);
+    sock.on("playerDisconnected", onPlayerDisconnected);
+    sock.on("playerReconnected", onPlayerReconnected);
 
     return () => {
         sock.off("gameUpdate", onGameUpdate);
         sock.off("yourHand", onYourHand);
         sock.off("errorMessage", onErrorMessage);
+        sock.off("playerDisconnected", onPlayerDisconnected);
+        sock.off("playerReconnected", onPlayerReconnected);
     };
 }

@@ -20,7 +20,7 @@ export class Round {
   constructor(
     private readonly contract: Contract,
     private readonly teams: Team[],
-    private readonly turnOrder: string[],
+    private turnOrder: string[],
     private readonly startingLeaderId?: string
   ) {
     teams.forEach(team => {
@@ -131,4 +131,11 @@ export class Round {
       this.teamTrickCounts
     );
   }
+
+  public remapPlayerId(oldId: string, newId: string): void {
+    const index = this.turnOrder.findIndex(id => id === oldId);
+    if (index !== -1) {
+        (this.turnOrder as string[])[index] = newId;
+    }
+}
 }

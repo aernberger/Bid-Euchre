@@ -163,7 +163,7 @@ export default class SocketHandler {
 
             socket.leave(gameRoomName(gameId));
             this.socketToGame.delete(socket.id);
-            this.wss.to(gameRoomName(gameId)).emit("gameUpdate", {
+            this.wss.to(gameRoomName(gameId)).emit("playerDisconnected", {
                 ...controller?.getPublicState(),
                 type: "PLAYER_DISCONNECTED",
                 disconnectedPlayerId: socket.id,
@@ -248,6 +248,13 @@ export default class SocketHandler {
             this.socketToGame.set(socket.id, gameId);
 
             this.emitGameUpdate(gameId, response);
+
+            this.wss.to(gameRoomName(gameId)).emit("playerReconnected", {
+                ...controller.getPublicState(),
+                type: "PLAYER_RECONNECTED",
+                reconnectedPlayerId: socket.id,
+            });
+
             this.broadcastLobby();
             socket.emit("gameCreated", { gameId });
 
@@ -424,7 +431,7 @@ export default class SocketHandler {
 
             socket.leave(gameRoomName(gameId!));
             this.socketToGame.delete(socket.id);
-            this.wss.to(gameRoomName(gameId!)).emit("gameUpdate", {
+            this.wss.to(gameRoomName(gameId!)).emit("playerDisconnected", {
                 ...controller?.getPublicState(),
                 type: "PLAYER_DISCONNECTED",
                 disconnectedPlayerId: socket.id,
