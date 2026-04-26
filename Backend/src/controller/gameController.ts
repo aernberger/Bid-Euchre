@@ -432,20 +432,22 @@ export class GameController {
   }
 
   public remapPlayerSocketId(oldId: string, newId: string): void {
+    if (oldId === newId) return;
+
     const hand = this.playerHands.get(oldId);
     if (hand) {
-      this.playerHands.set(newId, hand);
-      this.playerHands.delete(oldId);
+        this.playerHands.set(newId, hand);
+        this.playerHands.delete(oldId);
     }
 
     if (this.contract && (this.contract as any).declarerId === oldId) {
-      (this.contract as any).declarerId = newId;
+        (this.contract as any).declarerId = newId;
     }
 
     if (this.winningBid && this.winningBid.bidderId === oldId) {
-      (this.winningBid as any).bidderId = newId;
+        (this.winningBid as any).bidderId = newId;
     }
-  }
+}
 
   public restoreHand(socketId: string, cards: Card[]): void {
     this.playerHands.set(socketId, new Hand(cards));
