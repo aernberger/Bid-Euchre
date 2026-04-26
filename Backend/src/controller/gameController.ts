@@ -7,6 +7,8 @@ import Hand from "../models/hand.js";
 import Deck from "../models/deck.js";
 import Card from "../models/card.js";
 import Team from "../models/team.js";
+import { ContractType } from "../services/enums/contractType.js";
+import { SuitType } from "../models/enums/suit.js";
 
 export class GameController {
   private game!: Game;
@@ -22,6 +24,10 @@ export class GameController {
   private contract: Contract | null = null;
 
   private playerHands: Map<string, Hand> = new Map();
+
+  public currentRoundDbId: string | null = null;
+
+  private roundNumber: number = 0;
 
   /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
   getPublicState() {
@@ -104,6 +110,8 @@ export class GameController {
     this.players[1].teamId = 2;
     this.players[3].teamId = 2;
 
+    this.roundNumber = 1;
+
     this.game = new Game(this.players, [team1, team2]);
     this.dealerIndex = Math.floor(Math.random() * 4);
     this.dealHands();
@@ -124,7 +132,7 @@ export class GameController {
       currentPlayerId: this.players[this.currentPlayerIndex].id,
       phase: this.phase,
     };
-}
+  }
 
   public getPlayers(): Player[] {
     return this.players;
@@ -132,6 +140,10 @@ export class GameController {
 
   public getPhase(): GamePhase {
     return this.phase;
+  }
+
+  public getCurrentRoundNumber(): number {
+    return this.roundNumber;
   }
 
   public getPlayerHand(playerId: string): Card[] {
@@ -240,7 +252,11 @@ export class GameController {
       phase: this.phase
     };
 
+
+
   }
+
+
 
   private getPlayerIndex(playerId: string): number {
     const idx = this.players.findIndex(p => p.id === playerId);
@@ -273,6 +289,7 @@ export class GameController {
   }
 
   private setupNextBiddingRound(): void {
+    this.roundNumber += 1;
     this.bids = [];
     this.highestBid = null;
     this.winningBid = null;
@@ -309,14 +326,14 @@ export class GameController {
     if (!playerHand) {
       throw new Error("Player hand not found");
     }
-    
+
     // Remove from the Hand model and update the Player object
     playerHand.removeCard(card);
     currentPlayer.setCards(playerHand.getCards());
 
     // 3. EXECUTE GAME ENGINE LOGIC
     const playProgress = this.game.playCard(playerId, card);
-    
+
     // Advance the turn
     this.setCurrentPlayerById(playProgress.nextPlayerId);
 
@@ -337,19 +354,19 @@ export class GameController {
           type: "GAME_COMPLETE",
           winnerTeamId: winner?.teamId,
           round: playProgress.roundResult,
-          stats: statsPayload 
+          stats: statsPayload
         };
       }
 
       // If game continues, clear the bidding state for the next hand
-      this.setupNextBiddingRound(); 
+      this.setupNextBiddingRound();
 
       return {
         type: "ROUND_COMPLETE",
         roundResult: playProgress.roundResult,
         dealerId: this.players[this.dealerIndex].id,
         nextPlayerId: this.players[this.currentPlayerIndex].id,
-        stats: statsPayload 
+        stats: statsPayload
       };
     }
 
@@ -361,5 +378,88 @@ export class GameController {
       nextPlayerId: this.players[this.currentPlayerIndex].id,
       playedBy: playerId,
     };
+  }
+
+  public getSerializableState() {
+    return {
+      phase: this.phase,
+      team1_score: this.game?.getTeamGameScores().find(t => t.teamId === 1)?.score ?? 0,
+      team2_score: this.game?.getTeamGameScores().find(t => t.teamId === 2)?.score ?? 0,
+      individual_trick_counts: this.game?.getIndividualTrickCounts() ?? {},
+      is_complete: this.game?.isGameOver() ?? false,
+      winner_team: this.game?.getWinningTeam()?.teamId ?? null,
+    };
+  }
+
+  public getHandsForPersistence(): { supabaseId: string; cards: Card[] }[] {
+    return this.players
+      .filter(p => p.supabaseId)
+      .map(p => ({
+        supabaseId: p.supabaseId,
+        cards: this.getPlayerHand(p.id),
+      }));
+  }
+
+  public getContractForPersistence() {
+    if (!this.contract || !this.winningBid) return null;
+    const declarerPlayer = this.players.find(p => p.id === this.contract!.declarerId);
+
+    return {
+      contractType: this.contract.type,
+      trumpSuit: this.contract.trumpSuit ?? null,
+      tricks: this.contract.tricksRequired,
+      declarerSupabaseId: declarerPlayer?.supabaseId ?? null,
+      loner: this.contract.loner,
+    };
+
+  }
+
+  public reconstructContractFromDb(stored: {
+    contractType: ContractType;
+    trumpSuit: SuitType | null;
+    tricks: number;
+    declarerSupabaseId: string;
+    loner: boolean;
+  }): void {
+
+    const declarerPlayer = this.players.find(
+      p => p.supabaseId === stored.declarerSupabaseId
+    );
+    if (!declarerPlayer) {
+      throw new Error("Declarer not found in current players");
+    }
+
+    const bid = new Bid(
+      declarerPlayer.id,
+      stored.tricks,
+      stored.contractType,
+      stored.trumpSuit ?? undefined,
+      stored.loner
+    );
+
+    this.contract = new Contract(bid);
+    this.winningBid = bid;
+  }
+
+  public remapPlayerSocketId(oldId: string, newId: string): void {
+    const hand = this.playerHands.get(oldId);
+    if (hand) {
+      this.playerHands.set(newId, hand);
+      this.playerHands.delete(oldId);
+    }
+
+    if (this.contract && (this.contract as any).declarerId === oldId) {
+      (this.contract as any).declarerId = newId;
+    }
+
+    if (this.winningBid && this.winningBid.bidderId === oldId) {
+      (this.winningBid as any).bidderId = newId;
+    }
+  }
+
+  public restoreHand(socketId: string, cards: Card[]): void {
+    this.playerHands.set(socketId, new Hand(cards));
+    const player = this.players.find(p => p.id === socketId);
+    if (player) player.setCards(cards);
 }
 }

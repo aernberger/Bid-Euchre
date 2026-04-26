@@ -73,15 +73,31 @@ export function leaveGameRoom() {
     }
 }
 
-export function subscribeLobby(onList: (games: LobbyGameSummary[]) => void) {
+export function subscribeLobby(
+    onList: (games: LobbyGameSummary[]) => void,
+    supabaseId?: string,
+    onResumableGame?: (data: { gameId: string; phase: string }) => void
+) {
     const sock = getSocket();
     const onLobbyGames = (games: LobbyGameSummary[]) => onList(games);
-    sock.emit("lobbySubscribe");
+    const onResumable = (data: { gameId: string; phase: string }) => {
+        onResumableGame?.(data);
+    };
+
+    sock.emit("lobbySubscribe", { supabaseId });
     sock.on("lobbyGames", onLobbyGames);
+    sock.on("resumableGame", onResumable);
+
     return () => {
         sock.emit("lobbyUnsubscribe");
         sock.off("lobbyGames", onLobbyGames);
+        sock.off("resumableGame", onResumable);
     };
+}
+
+export function rejoinGame(gameId: string, displayName: string, supabaseId: string) {
+    const sock = getSocket();
+    sock.emit("joinGame", { gameId, name: displayName, supabaseId });
 }
 
 export function createGameOnServer(displayName: string, supabaseId: string): Promise<string> {

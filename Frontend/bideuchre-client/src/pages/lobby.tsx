@@ -4,6 +4,7 @@ import {
     connectSocket,
     subscribeLobby,
     createGameOnServer,
+    rejoinGame,
     LobbyGameSummary,
 } from "../sockets/socket";
 import {
@@ -41,6 +42,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showRules, setShowRules] = useState(false);
+    const [resumable, setResumable] = useState<{ gameId: string; phase: string } | null>(null);
 
     const displayName =
         (typeof user?.user_metadata?.username === "string" && user.user_metadata.username) ||
@@ -53,7 +55,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
 
         let unsub: (() => void) | undefined;
         try {
-            unsub = subscribeLobby(setTables);
+            unsub = subscribeLobby(setTables, user.id, (data) => setResumable(data));
         } catch (e: any) {
             setError(e?.message ?? "Could not open lobby");
         }
@@ -61,7 +63,7 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
         return () => {
             unsub?.();
         };
-    }, [token]);
+    }, [token, user.id]);
 
     const handleCreate = useCallback(async () => {
         setError(null);
@@ -84,35 +86,66 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
         [onEnterGame]
     );
 
+    const handleRejoin = useCallback(() => {
+        if (!resumable) return;
+        rejoinGame(resumable.gameId, displayName, user.id);
+        onEnterGame(resumable.gameId);
+    }, [resumable, displayName, user.id, onEnterGame]);
+
     return (
         <div style={lobbyPageStyle}>
             <div style={lobbyContainerStyle}>
                 <header style={lobbyHeaderStyle}>
                     <div style={lobbyHeaderActionsStyle}>
-                        <button
-                            type="button"
-                            onClick={onLogout}
-                            style={lobbyLogoutButtonStyle}
-                        >
+                        <button type="button" onClick={onLogout} style={lobbyLogoutButtonStyle}>
                             Log out
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowRules(true)}
-                            style={lobbyRulesButtonStyle}
-                        >
+                        <button type="button" onClick={() => setShowRules(true)} style={lobbyRulesButtonStyle}>
                             Rules
                         </button>
                     </div>
                     <div style={lobbyTitleWrapStyle}>
-                        <h1 style={lobbyTitleStyle}>
-                            Tables
-                        </h1>
+                        <h1 style={lobbyTitleStyle}>Tables</h1>
                         <p style={lobbySubtitleStyle}>
-                            Open a new table or join one that has not started yet (waiting for players).
+                            Open a new table or join one that has not started yet.
                         </p>
                     </div>
                 </header>
+
+                {/* NEW: Resumable game banner */}
+                {resumable && (
+                    <div style={{
+                        background: "#2a4a2a",
+                        border: "1px solid #4a8a4a",
+                        borderRadius: 8,
+                        padding: "12px 16px",
+                        marginBottom: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                    }}>
+                        <span style={{ color: "#a8d8a8", fontSize: 14 }}>
+                            You have an active game in progress ({resumable.phase.toLowerCase()}).
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleRejoin}
+                            style={{
+                                background: "#4a8a4a",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 6,
+                                padding: "8px 16px",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            Rejoin Game
+                        </button>
+                    </div>
+                )}
 
                 <button
                     type="button"
@@ -123,16 +156,10 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                     {creating ? "Creating table…" : "Create new table"}
                 </button>
 
-                {error ? (
-                    <div role="alert" style={lobbyErrorStyle}>
-                        {error}
-                    </div>
-                ) : null}
+                {error ? <div role="alert" style={lobbyErrorStyle}>{error}</div> : null}
 
                 <section style={lobbySectionStyle}>
-                    <h2 style={lobbySectionTitleStyle}>
-                        Join a table
-                    </h2>
+                    <h2 style={lobbySectionTitleStyle}>Join a table</h2>
                     {tables.length === 0 ? (
                         <p style={lobbyEmptyStyle}>
                             No open tables yet. Create one and share the room with friends.
@@ -142,10 +169,8 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
                             {tables.map((g) => (
                                 <li key={g.id} style={lobbyListItemStyle}>
                                     <div style={lobbyPlayerInfoStyle}>
-                                        <div style={lobbyPlayerCountStyle}>
-                                            {g.playerCount} / 4 players
-                                        </div>
-                                        <div style={lobbyPlayerNamesStyle} title={g.players.map((p) => p.name).join(", ")}>
+                                        <div style={lobbyPlayerCountStyle}>{g.playerCount} / 4 players</div>
+                                        <div style={lobbyPlayerNamesStyle}>
                                             {g.players.map((p) => p.name).join(", ") || "Empty"}
                                         </div>
                                     </div>
@@ -167,3 +192,4 @@ export default function Lobby({ token, user, onEnterGame, onLogout }: LobbyProps
         </div>
     );
 }
+
