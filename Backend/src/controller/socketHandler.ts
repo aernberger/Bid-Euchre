@@ -286,21 +286,9 @@ export default class SocketHandler {
                         p_game_id: gameId,
                         p_user_id: data.supabaseId,
                         p_connected: true,
+                    }).then(({ error }) => {
+                        if (error) console.error("[DB] set_player_connection failed:", error.message);
                     });
-                }
-
-                let hand = controller.getPlayerHand(socket.id);
-                if (hand.length === 0 && data.supabaseId && controller.currentRoundDbId) {
-                    const { data: handData } = await supabase
-                        .from("player_hands")
-                        .select("cards")
-                        .eq("round_id", controller.currentRoundDbId)
-                        .eq("user_id", data.supabaseId)
-                        .single();
-
-                    if (handData?.cards) {
-                        controller.restoreHand(socket.id, handData.cards);
-                    }
                 }
 
                 response = {
@@ -316,11 +304,11 @@ export default class SocketHandler {
 
                 const player = new Player(socket.id, data?.name || "Player", data.supabaseId || "");
                 response = controller.addPlayer(player);
+                console.log(`[Join] Player ${data.supabaseId} joined. Response type: ${response.type}`);
 
                 if (data.supabaseId) {
                     const seatPosition = controller.getPlayers().length - 1;
                     const teamNumber = seatPosition % 2 === 0 ? 1 : 2;
-
                     const { error } = await supabase.from("game_players").upsert({
                         game_id: gameId,
                         user_id: data.supabaseId,
@@ -328,43 +316,48 @@ export default class SocketHandler {
                         seat_position: seatPosition,
                         is_connected: true,
                     }, { onConflict: "game_id,user_id" });
-
                     if (error) console.error("[DB] Failed to upsert game_player:", error.message);
                 }
 
                 if (response.type === "GAME_INITIALIZED") {
-                    await supabase.from("games").update({ phase: "BIDDING" }).eq("id", gameId);
+                    try {
+                        await supabase.from("games")
+                            .update({ phase: "BIDDING" })
+                            .eq("id", gameId);
 
-                    const { data: roundRow, error: roundError } = await supabase
-                        .from("rounds")
-                        .insert({
-                            game_id: gameId,
-                            round_number: controller.getCurrentRoundNumber(),
-                            phase: "BIDDING",
-                            turn_order: controller.getPlayers().map(p => p.supabaseId),
-                            team_trick_counts: { "1": 0, "2": 0 },
-                        })
-                        .select()
-                        .single();
+                        const { data: roundRow, error: roundError } = await supabase
+                            .from("rounds")
+                            .insert({
+                                game_id: gameId,
+                                round_number: controller.getCurrentRoundNumber(),
+                                phase: "BIDDING",
+                                turn_order: controller.getPlayers().map(p => p.supabaseId),
+                                team_trick_counts: { "1": 0, "2": 0 },
+                            })
+                            .select()
+                            .single();
 
-                    if (roundError) {
-                        console.error("[DB] Failed to insert round:", roundError.message);
-                    } else if (roundRow) {
-                        controller.currentRoundDbId = roundRow.id;
-                        console.log(`[DB] Round ${roundRow.id} created for game ${gameId}`);
+                        if (roundError) {
+                            console.error("[DB] Failed to insert round:", roundError.message);
+                        } else if (roundRow) {
+                            controller.currentRoundDbId = roundRow.id;
+                            console.log(`[DB] Round ${roundRow.id} created. currentRoundDbId set.`);
 
-                        // Persist all 4 dealt hands
-                        const hands = controller.getHandsForPersistence();
-                        for (const { supabaseId, cards } of hands) {
-                            const { error: handError } = await supabase
-                                .from("player_hands")
-                                .upsert(
-                                    { round_id: roundRow.id, user_id: supabaseId, cards },
-                                    { onConflict: "round_id,user_id" }
-                                );
-                            if (handError) console.error("[DB] Failed to upsert hand:", handError.message);
+                            const hands = controller.getHandsForPersistence();
+                            console.log(`[DB] Persisting ${hands.length} hands. Counts: ${hands.map(h => `${h.supabaseId?.slice(0, 8)}:${h.cards.length}`).join(', ')}`);
+                            for (const { supabaseId, cards } of hands) {
+                                const { error: handError } = await supabase
+                                    .from("player_hands")
+                                    .upsert(
+                                        { round_id: roundRow.id, user_id: supabaseId, cards },
+                                        { onConflict: "round_id,user_id" }
+                                    );
+                                if (handError) console.error("[DB] Failed to upsert hand:", handError.message);
+                            }
+                            console.log(`[DB] All ${hands.length} hands persisted for round ${roundRow.id}`);
                         }
-                        console.log(`[DB] All hands persisted for round ${roundRow.id}`);
+                    } catch (dbErr: any) {
+                        console.error("[DB] Hand persistence failed:", dbErr.message);
                     }
                 }
             }
@@ -375,10 +368,33 @@ export default class SocketHandler {
 
             this.emitGameUpdate(gameId, response);
             this.broadcastLobby();
+            let hand = controller.getPlayerHand(socket.id);
 
-            const hand = controller.getPlayerHand(socket.id);
+            if (hand.length === 0 && existingPlayer && data.supabaseId && controller.currentRoundDbId) {
+                console.log(`[Reconnect] Hand empty in memory for ${data.supabaseId}, fetching from DB...`);
+                try {
+                    const { data: handData, error } = await supabase
+                        .from("player_hands")
+                        .select("cards")
+                        .eq("round_id", controller.currentRoundDbId)
+                        .eq("user_id", data.supabaseId)
+                        .single();
+
+                    if (error) {
+                        console.error("[DB] Failed to fetch hand:", error.message);
+                    } else if (handData?.cards?.length > 0) {
+                        controller.restoreHand(socket.id, handData.cards);
+                        hand = controller.getPlayerHand(socket.id);
+                        console.log(`[Reconnect] Restored ${hand.length} cards from DB for ${data.supabaseId}`);
+                    }
+                } catch (e: any) {
+                    console.error("[DB] Hand fetch error:", e.message);
+                }
+            }
+
             const playableCards = controller.getPlayableCards(socket.id);
             socket.emit("yourHand", { cards: hand, playableCards: playableCards ?? [] });
+            console.log(`[Hand] Sent ${hand.length} cards to ${data.supabaseId ?? socket.id}`);
 
         } catch (error: any) {
             socket.emit("errorMessage", error.message);
@@ -425,40 +441,42 @@ export default class SocketHandler {
 
 
     private async onPlaceBid(socket: Socket, data: any) {
-        try {
-            const gameId = this.socketToGame.get(socket.id);
-            if (!gameId) { socket.emit("errorMessage", "You are not seated at a table."); return; }
-            const controller = this.games.get(gameId);
-            if (!controller) { socket.emit("errorMessage", "Game not found."); return; }
+    try {
+        const gameId = this.socketToGame.get(socket.id);
+        if (!gameId) { socket.emit("errorMessage", "You are not seated at a table."); return; }
+        const controller = this.games.get(gameId);
+        if (!controller) { socket.emit("errorMessage", "Game not found."); return; }
 
-            const bid = new Bid(socket.id, data.tricks, data.contractType, data.suitType, data.loner);
-            const response = controller.placeBid(bid);
-            this.emitGameUpdate(gameId, response);
+        const bid = new Bid(socket.id, data.tricks, data.contractType, data.suitType, data.loner);
+        const response = controller.placeBid(bid);
+        this.emitGameUpdate(gameId, response);
 
-            if (response.type === "BIDDING_COMPLETE") {
-                const contract = controller.getContractForPersistence();
+        if (response.type === "BIDDING_COMPLETE") {
+            const contract = controller.getContractForPersistence();
 
-                // UPDATE the existing round row — it was inserted when hands were dealt
-                if (controller.currentRoundDbId) {
-                    const { error } = await supabase.from("rounds")
-                        .update({
-                            phase: "PLAYING",
-                            contract,
-                            starting_leader_id: contract?.declarerSupabaseId ?? null,
-                        })
-                        .eq("id", controller.currentRoundDbId);
+            if (controller.currentRoundDbId) {
+                const { error } = await supabase.from("rounds")
+                    .update({
+                        phase: "PLAYING",
+                        contract,
+                        starting_leader_id: contract?.declarerSupabaseId ?? null,
+                    })
+                    .eq("id", controller.currentRoundDbId);
 
-                    if (error) console.error("[DB] Failed to update round to PLAYING:", error.message);
-                    else console.log(`[DB] Round ${controller.currentRoundDbId} updated to PLAYING`);
+                if (error) {
+                    console.error("[DB] Failed to update round to PLAYING:", error.message);
                 } else {
-                    console.warn("[DB] No currentRoundDbId — round not updated");
+                    console.log(`[DB] Round ${controller.currentRoundDbId} updated to PLAYING`);
                 }
+            } else {
+                console.warn("[DB] No currentRoundDbId — was GAME_INITIALIZED returned by addPlayer?");
             }
-
-        } catch (error: any) {
-            socket.emit("errorMessage", error.message);
         }
+
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message);
     }
+}
 
     private async onPlayCard(socket: Socket, data: any) {
         try {
@@ -471,12 +489,10 @@ export default class SocketHandler {
             const response = controller.playCard(socket.id, card);
             this.emitGameUpdate(gameId, response);
 
-            // Persist game-level state
             await supabase.from("games")
                 .update(controller.getSerializableState())
                 .eq("id", gameId);
 
-            // Use currentRoundDbId from the controller — set during onPlaceBid
             const roundId = controller.currentRoundDbId;
             if (roundId) {
                 const hands = controller.getHandsForPersistence();
@@ -489,11 +505,9 @@ export default class SocketHandler {
                 }
 
                 if (response.type === "ROUND_COMPLETE") {
-                    // Mark old round complete
                     await supabase.from("rounds").update({ is_complete: true }).eq("id", roundId);
                     controller.currentRoundDbId = null;
 
-                    // Insert new round row — setupNextBiddingRound already dealt new hands
                     const { data: newRoundRow, error: roundError } = await supabase
                         .from("rounds")
                         .insert({
@@ -531,7 +545,6 @@ export default class SocketHandler {
                 }
             }
 
-            // Stats (unchanged)
             if (response.stats) {
                 try {
                     await StatsService.recordRoundStats(

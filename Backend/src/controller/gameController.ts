@@ -58,30 +58,24 @@ export class GameController {
 
   addPlayer(player: Player) {
     if (this.phase !== GamePhase.WAITING) {
-      throw new Error("Game has already started.");
+        throw new Error("Game has already started.");
     }
-
     if (this.players.length >= 4) {
-      throw new Error("Game is full.");
+        throw new Error("Game is full.");
     }
 
     this.players.push(player);
 
     if (this.players.length === 4) {
-      this.initializeGame();
-      this.phase = GamePhase.BIDDING;
+        return this.initializeGame();
     }
 
     return {
-      type: "PLAYER_JOINED",
-      players: this.players.map(player => ({
-        id: player.id,
-        name: player.name,
-      })),
-      phase: this.phase,
-
+        type: "PLAYER_JOINED",
+        players: this.players.map(p => ({ id: p.id, name: p.name })),
+        phase: this.phase,
     };
-  }
+}
 
   removePlayer(playerId: string) {
     this.players = this.players.filter(player => player.id !== playerId);
@@ -99,18 +93,15 @@ export class GameController {
   }
 
   initializeGame() {
-    // Assign teams
+    this.roundNumber = 1;
+
     const team1 = new Team(this.players[0], this.players[2], 1);
     const team2 = new Team(this.players[1], this.players[3], 2);
 
-    // IMPORTANT: Explicitly set the teamId on the Player objects 
-    // so the frontend knows which team they are on.
     this.players[0].teamId = 1;
     this.players[2].teamId = 1;
     this.players[1].teamId = 2;
     this.players[3].teamId = 2;
-
-    this.roundNumber = 1;
 
     this.game = new Game(this.players, [team1, team2]);
     this.dealerIndex = Math.floor(Math.random() * 4);
@@ -120,19 +111,18 @@ export class GameController {
     this.phase = GamePhase.BIDDING;
 
     return {
-      type: "GAME_INITIALIZED",
-      // Include the teamId and seat in the response
-      players: this.players.map((player, index) => ({
-        id: player.id,
-        name: player.name,
-        teamId: player.teamId,
-        seat: index
-      })),
-      dealerId: this.players[this.dealerIndex].id,
-      currentPlayerId: this.players[this.currentPlayerIndex].id,
-      phase: this.phase,
+        type: "GAME_INITIALIZED",
+        players: this.players.map((player, index) => ({
+            id: player.id,
+            name: player.name,
+            teamId: player.teamId,
+            seat: index
+        })),
+        dealerId: this.players[this.dealerIndex].id,
+        currentPlayerId: this.players[this.currentPlayerIndex].id,
+        phase: this.phase,
     };
-  }
+}
 
   public getPlayers(): Player[] {
     return this.players;
@@ -140,10 +130,6 @@ export class GameController {
 
   public getPhase(): GamePhase {
     return this.phase;
-  }
-
-  public getCurrentRoundNumber(): number {
-    return this.roundNumber;
   }
 
   public getPlayerHand(playerId: string): Card[] {
@@ -289,7 +275,7 @@ export class GameController {
   }
 
   private setupNextBiddingRound(): void {
-    this.roundNumber += 1;
+    this.roundNumber ++;
     this.bids = [];
     this.highestBid = null;
     this.winningBid = null;
@@ -299,6 +285,10 @@ export class GameController {
     this.currentPlayerIndex = (this.dealerIndex + 1) % this.players.length;
     this.dealHands();
     this.phase = GamePhase.BIDDING;
+  }
+
+  public getCurrentRoundNumber(): number {
+    return this.roundNumber;
   }
 
 
