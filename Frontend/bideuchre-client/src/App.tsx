@@ -46,6 +46,15 @@ export default function App() {
         }
     };
 
+    const handleUserUpdated = useCallback((updatedUser: any) => {
+        setUser(updatedUser);
+        try {
+            sessionStorage.setItem("sb-user", JSON.stringify(updatedUser));
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const handleLogout = () => {
          // 4. Clear sessionStorage
         leaveGameRoom();
@@ -94,7 +103,7 @@ export default function App() {
             ) : (
                 <Lobby token={token} user={user} onEnterGame={enterGame} onLogout={handleLogout} />
             )}
-            {token ? <PlayerPopup /> : null}
+            {token ? <PlayerPopup token={token} user={user} onUserUpdated={handleUserUpdated} /> : null}
         </div>
     );
 }
