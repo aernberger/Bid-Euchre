@@ -44,7 +44,11 @@ export class ScoringEngine {
         }
       } else {
         pointsAwardedToTeamId = declarerTeam.teamId;
-        pointsAwarded = -contract.tricksRequired;
+        if (contract.loner && contract.tricksRequired === 6) {
+          pointsAwarded = -12;
+        } else {
+          pointsAwarded = -contract.tricksRequired;
+        }
       }
 
       return new RoundResult(
