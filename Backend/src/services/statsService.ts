@@ -13,8 +13,6 @@ export class StatsService {
   ) {
     const updates = players.map(async (player) => {
       const isDeclarer = player.id === declarerId;
-
-      console.log(`🔎 PLAYER: ${player.name} | SOCKET_ID: ${player.id} | DB_ID: [${player.supabaseId}]`);
       
       const { data, error } = await supabaseAdmin.rpc("update_player_stats", {
         p_user_id: player.supabaseId,
@@ -28,10 +26,10 @@ export class StatsService {
       });
 
       if (error) {
-        console.error(`❌ DB Sync Failed for ${player.name}:`, error.message);
+        console.error(`DB Sync Failed for ${player.name}:`, error.message);
         console.error(`Hint: Check if the function 'update_player_stats' exists in Supabase.`);
       } else {
-        console.log(`✅ DB Sync Success for ${player.name}`);
+        console.log(`DB Sync Success for ${player.name}`);
       }
     });
 
@@ -51,7 +49,7 @@ export class StatsService {
         p_tricks_total: 0
       });
 
-      if (error) console.error(`❌ Game End Sync Failed:`, error.message);
+      if (error) console.error(`Game End Sync Failed:`, error.message);
     });
 
     await Promise.all(updates);
