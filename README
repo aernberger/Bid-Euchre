@@ -46,7 +46,7 @@ A gameplay mechanic that highlights a card when hovered over and greys out any c
 A visually appealing game board that displays the cards in play, the current score of the tricks taken in the round, the bid, and the players.
 A thoughtfully designed red and blue team distinction to make it easier to follow gameplay for whose turn it is, who declared the bid, and who is scoring points.
 An actively updating total scoreboard that changes at the end of each round before shifting the dealer and dealing new cards for the next round.
-Allows for players to leave the game at any time, showing opponents a player left and allowing the player to rejoin when ready to resume gameplay.
+Allows for players to leave the game at any time, showing opponents a player left and allowing the player to rejoin when ready to resume gameplay. Doesn't allow two of the same player in a game.
 A clear message when a player wins or loses a game when a team reaches 21.
 
 Running the Code:
