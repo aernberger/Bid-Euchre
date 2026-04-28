@@ -1,6 +1,13 @@
 {
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
     "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
   }
 }

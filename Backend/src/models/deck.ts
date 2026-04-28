@@ -1,7 +1,6 @@
-import Card from "./card.js";
-import Face from "./enums/face.js";
-import Suit from "./enums/suit.js";
-
+import Card from './card.js';
+import Face from './enums/face.js';
+import Suit from './enums/suit.js';
 
 export default class Deck {
   cards: Card[];

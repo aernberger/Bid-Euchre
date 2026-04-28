@@ -1,7 +1,7 @@
-import supabase from "../supabaseClient.js";
-import { RoundResult } from "../models/roundResult.js";
-import Player from "../models/player.js";
-import { supabaseAdmin } from "../supabaseClient.js";
+import supabase from '../supabaseClient.js';
+import { RoundResult } from '../models/roundResult.js';
+import Player from '../models/player.js';
+import { supabaseAdmin } from '../supabaseClient.js';
 
 export class StatsService {
   static async recordRoundStats(
@@ -9,12 +9,12 @@ export class StatsService {
     result: RoundResult,
     declarerId: string,
     bidAmount: number,
-    playerTricks: Record<string, number>
+    playerTricks: Record<string, number>,
   ) {
     const updates = players.map(async (player) => {
       const isDeclarer = player.id === declarerId;
-      
-      const { data, error } = await supabaseAdmin.rpc("update_player_stats", {
+
+      const { data, error } = await supabaseAdmin.rpc('update_player_stats', {
         p_user_id: player.supabaseId,
         p_is_match_over: false,
         p_game_won: false,
@@ -22,7 +22,7 @@ export class StatsService {
         p_bid_amount: isDeclarer ? bidAmount : 0,
         p_made_bid: isDeclarer && result.contractMade,
         p_tricks_won: playerTricks[player.id] || 0,
-        p_tricks_total: 6 
+        p_tricks_total: 6,
       });
 
       if (error) {
@@ -38,7 +38,7 @@ export class StatsService {
 
   static async recordGameStats(players: Player[], winnerTeamId: number) {
     const updates = players.map(async (player) => {
-      const { error } = await supabase.rpc("update_player_stats", {
+      const { error } = await supabase.rpc('update_player_stats', {
         p_user_id: player.supabaseId,
         p_is_match_over: true,
         p_game_won: player.teamId === winnerTeamId,
@@ -46,7 +46,7 @@ export class StatsService {
         p_bid_amount: 0,
         p_made_bid: false,
         p_tricks_won: 0,
-        p_tricks_total: 0
+        p_tricks_total: 0,
       });
 
       if (error) console.error(`Game End Sync Failed:`, error.message);

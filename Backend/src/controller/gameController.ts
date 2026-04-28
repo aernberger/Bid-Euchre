@@ -1,14 +1,14 @@
-import { Game } from "../models/game.js";
-import { Bid } from "../services/bid.js";
-import { Contract } from "../services/contract.js";
-import { GamePhase } from "./enums/gamePhase.js";
-import Player from "../models/player.js";
-import Hand from "../models/hand.js";
-import Deck from "../models/deck.js";
-import Card from "../models/card.js";
-import Team from "../models/team.js";
-import { ContractType } from "../services/enums/contractType.js";
-import { SuitType } from "../models/enums/suit.js";
+import { Game } from '../models/game.js';
+import { Bid } from '../services/bid.js';
+import { Contract } from '../services/contract.js';
+import { GamePhase } from './enums/gamePhase.js';
+import Player from '../models/player.js';
+import Hand from '../models/hand.js';
+import Deck from '../models/deck.js';
+import Card from '../models/card.js';
+import Team from '../models/team.js';
+import { ContractType } from '../services/enums/contractType.js';
+import { SuitType } from '../models/enums/suit.js';
 
 export class GameController {
   private game!: Game;
@@ -33,14 +33,14 @@ export class GameController {
   getPublicState() {
     const currentPlayer = this.players[this.currentPlayerIndex];
     const playerHandCounts = Object.fromEntries(
-      this.players.map((player) => [player.id, this.getPlayerHand(player.id).length])
+      this.players.map((player) => [player.id, this.getPlayerHand(player.id).length]),
     );
     const playedCards = this.game
       ? this.game.getCurrentTrickPlays().map((play) => ({
-        playerId: play.playerId,
-        suit: play.card.suit,
-        face: play.card.face,
-      }))
+          playerId: play.playerId,
+          suit: play.card.suit,
+          face: play.card.face,
+        }))
       : [];
     return {
       phase: this.phase,
@@ -58,33 +58,33 @@ export class GameController {
 
   addPlayer(player: Player) {
     if (this.phase !== GamePhase.WAITING) {
-        throw new Error("Game has already started.");
+      throw new Error('Game has already started.');
     }
     if (this.players.length >= 4) {
-        throw new Error("Game is full.");
+      throw new Error('Game is full.');
     }
 
     this.players.push(player);
 
     if (this.players.length === 4) {
-        return this.initializeGame();
+      return this.initializeGame();
     }
 
     return {
-        type: "PLAYER_JOINED",
-        players: this.players.map(p => ({ id: p.id, name: p.name })),
-        phase: this.phase,
+      type: 'PLAYER_JOINED',
+      players: this.players.map((p) => ({ id: p.id, name: p.name })),
+      phase: this.phase,
     };
-}
+  }
 
   removePlayer(playerId: string) {
-    this.players = this.players.filter(player => player.id !== playerId);
+    this.players = this.players.filter((player) => player.id !== playerId);
     if (this.phase !== GamePhase.WAITING) {
       this.phase = GamePhase.WAITING;
     }
     return {
-      type: "PLAYER_LEFT",
-      players: this.players.map(player => ({
+      type: 'PLAYER_LEFT',
+      players: this.players.map((player) => ({
         id: player.id,
         name: player.name,
       })),
@@ -111,18 +111,18 @@ export class GameController {
     this.phase = GamePhase.BIDDING;
 
     return {
-        type: "GAME_INITIALIZED",
-        players: this.players.map((player, index) => ({
-            id: player.id,
-            name: player.name,
-            teamId: player.teamId,
-            seat: index
-        })),
-        dealerId: this.players[this.dealerIndex].id,
-        currentPlayerId: this.players[this.currentPlayerIndex].id,
-        phase: this.phase,
+      type: 'GAME_INITIALIZED',
+      players: this.players.map((player, index) => ({
+        id: player.id,
+        name: player.name,
+        teamId: player.teamId,
+        seat: index,
+      })),
+      dealerId: this.players[this.dealerIndex].id,
+      currentPlayerId: this.players[this.currentPlayerIndex].id,
+      phase: this.phase,
     };
-}
+  }
 
   public getPlayers(): Player[] {
     return this.players;
@@ -147,21 +147,20 @@ export class GameController {
     return this.game.getLegalMovesForPlayer(playerId, hand, this.contract);
   }
 
-
   placeBid(bid: Bid) {
     if (this.phase !== GamePhase.BIDDING) {
-      throw new Error("Game is not in bidding phase");
+      throw new Error('Game is not in bidding phase');
     }
 
     const currentPlayer = this.players[this.currentPlayerIndex];
 
     if (currentPlayer.id !== bid.bidderId) {
-      throw new Error("Not your turn");
+      throw new Error('Not your turn');
     }
 
     if (bid.isPass()) {
       if (this.bids.length === 0) {
-        throw new Error("The first player to bid cannot pass. Please place a bid.");
+        throw new Error('The first player to bid cannot pass. Please place a bid.');
       }
       this.bids.push(bid);
       this.advanceTurn();
@@ -170,14 +169,14 @@ export class GameController {
       }
 
       return {
-        type: "BID_PASSED",
+        type: 'BID_PASSED',
         nextPlayerId: this.players[this.currentPlayerIndex].id,
         currentPlayerId: this.players[this.currentPlayerIndex].id,
       };
     }
 
     if (this.highestBid && !bid.beats(this.highestBid)) {
-      throw new Error("Bid must be higher than current highest bid");
+      throw new Error('Bid must be higher than current highest bid');
     }
 
     this.highestBid = bid;
@@ -190,7 +189,7 @@ export class GameController {
     }
 
     return {
-      type: "BID_PLACED",
+      type: 'BID_PLACED',
       highestBid: this.highestBid,
       nextPlayerId: this.players[this.currentPlayerIndex].id,
       currentPlayerId: this.players[this.currentPlayerIndex].id,
@@ -205,7 +204,7 @@ export class GameController {
     if (!this.highestBid) {
       this.phase = GamePhase.WAITING;
       return {
-        type: "REDEAL_REQUIRED",
+        type: 'REDEAL_REQUIRED',
       };
     }
 
@@ -213,46 +212,36 @@ export class GameController {
     this.winningBid = this.highestBid;
 
     // determine first player: player to the left of the declarer
-    const declarerIndex = this.players.findIndex(
-      p => p.id === this.contract!.declarerId
-    );
+    const declarerIndex = this.players.findIndex((p) => p.id === this.contract!.declarerId);
 
     if (declarerIndex === -1) {
       this.currentPlayerIndex = 0;
     } else {
-      this.currentPlayerIndex =
-        declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
+      this.currentPlayerIndex = declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
     }
 
     // pass the player id who will lead the first trick into Game.startNewRound
     const startingLeaderId = this.players[this.currentPlayerIndex].id;
     this.game.startNewRound(this.contract, startingLeaderId);
 
-
     this.phase = GamePhase.PLAYING;
 
     return {
-      type: "BIDDING_COMPLETE",
+      type: 'BIDDING_COMPLETE',
       winningBid: this.highestBid,
       declarerId: this.contract.declarerId,
-      phase: this.phase
+      phase: this.phase,
     };
-
-
-
   }
 
-
-
   private getPlayerIndex(playerId: string): number {
-    const idx = this.players.findIndex(p => p.id === playerId);
-    if (idx === -1) throw new Error("Player not found: " + playerId);
+    const idx = this.players.findIndex((p) => p.id === playerId);
+    if (idx === -1) throw new Error('Player not found: ' + playerId);
     return idx;
   }
 
   private advanceTurn(): void {
-    this.currentPlayerIndex =
-      (this.currentPlayerIndex + 1) % this.players.length;
+    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
   }
 
   private setCurrentPlayerById(playerId: string): void {
@@ -275,7 +264,7 @@ export class GameController {
   }
 
   private setupNextBiddingRound(): void {
-    this.roundNumber ++;
+    this.roundNumber++;
     this.bids = [];
     this.highestBid = null;
     this.winningBid = null;
@@ -291,30 +280,29 @@ export class GameController {
     return this.roundNumber;
   }
 
-
   public playCard(playerId: string, card: Card) {
     if (this.phase !== GamePhase.PLAYING) {
-      throw new Error("Game is not in playing phase");
+      throw new Error('Game is not in playing phase');
     }
 
     const currentPlayer = this.players[this.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.id !== playerId) {
-      throw new Error("Not your turn");
+      throw new Error('Not your turn');
     }
 
     // 1. VALIDATION
     const legalMoves = this.getPlayableCards(playerId);
     const isLegalCard = legalMoves.some(
-      (legalCard) => legalCard.suit === card.suit && legalCard.face === card.face
+      (legalCard) => legalCard.suit === card.suit && legalCard.face === card.face,
     );
     if (!isLegalCard) {
-      throw new Error("Illegal card play (must follow suit)");
+      throw new Error('Illegal card play (must follow suit)');
     }
 
     // 2. UPDATE HAND STATE (The part I missed)
     const playerHand = this.playerHands.get(playerId);
     if (!playerHand) {
-      throw new Error("Player hand not found");
+      throw new Error('Player hand not found');
     }
 
     // Remove from the Hand model and update the Player object
@@ -334,17 +322,17 @@ export class GameController {
         roundResult: playProgress.roundResult,
         declarerId: this.contract?.declarerId,
         bidAmount: this.contract?.tricksRequired,
-        playerTrickCounts: this.game.getIndividualTrickCounts()
+        playerTrickCounts: this.game.getIndividualTrickCounts(),
       };
 
       if (this.game.isGameOver()) {
         const winner = this.game.getWinningTeam();
         this.phase = GamePhase.WAITING;
         return {
-          type: "GAME_COMPLETE",
+          type: 'GAME_COMPLETE',
           winnerTeamId: winner?.teamId,
           round: playProgress.roundResult,
-          stats: statsPayload
+          stats: statsPayload,
         };
       }
 
@@ -352,17 +340,17 @@ export class GameController {
       this.setupNextBiddingRound();
 
       return {
-        type: "ROUND_COMPLETE",
+        type: 'ROUND_COMPLETE',
         roundResult: playProgress.roundResult,
         dealerId: this.players[this.dealerIndex].id,
         nextPlayerId: this.players[this.currentPlayerIndex].id,
-        stats: statsPayload
+        stats: statsPayload,
       };
     }
 
     // 5. STANDARD PLAY RESPONSE
     return {
-      type: "CARD_PLAYED",
+      type: 'CARD_PLAYED',
       playerId,
       trickCompleted: playProgress.trickCompleted,
       nextPlayerId: this.players[this.currentPlayerIndex].id,
@@ -373,8 +361,8 @@ export class GameController {
   public getSerializableState() {
     return {
       phase: this.phase,
-      team1_score: this.game?.getTeamGameScores().find(t => t.teamId === 1)?.score ?? 0,
-      team2_score: this.game?.getTeamGameScores().find(t => t.teamId === 2)?.score ?? 0,
+      team1_score: this.game?.getTeamGameScores().find((t) => t.teamId === 1)?.score ?? 0,
+      team2_score: this.game?.getTeamGameScores().find((t) => t.teamId === 2)?.score ?? 0,
       individual_trick_counts: this.game?.getIndividualTrickCounts() ?? {},
       is_complete: this.game?.isGameOver() ?? false,
       winner_team: this.game?.getWinningTeam()?.teamId ?? null,
@@ -383,8 +371,8 @@ export class GameController {
 
   public getHandsForPersistence(): { supabaseId: string; cards: Card[] }[] {
     return this.players
-      .filter(p => p.supabaseId)
-      .map(p => ({
+      .filter((p) => p.supabaseId)
+      .map((p) => ({
         supabaseId: p.supabaseId,
         cards: this.getPlayerHand(p.id),
       }));
@@ -392,7 +380,7 @@ export class GameController {
 
   public getContractForPersistence() {
     if (!this.contract || !this.winningBid) return null;
-    const declarerPlayer = this.players.find(p => p.id === this.contract!.declarerId);
+    const declarerPlayer = this.players.find((p) => p.id === this.contract!.declarerId);
 
     return {
       contractType: this.contract.type,
@@ -401,7 +389,6 @@ export class GameController {
       declarerSupabaseId: declarerPlayer?.supabaseId ?? null,
       loner: this.contract.loner,
     };
-
   }
 
   public reconstructContractFromDb(stored: {
@@ -411,12 +398,9 @@ export class GameController {
     declarerSupabaseId: string;
     loner: boolean;
   }): void {
-
-    const declarerPlayer = this.players.find(
-      p => p.supabaseId === stored.declarerSupabaseId
-    );
+    const declarerPlayer = this.players.find((p) => p.supabaseId === stored.declarerSupabaseId);
     if (!declarerPlayer) {
-      throw new Error("Declarer not found in current players");
+      throw new Error('Declarer not found in current players');
     }
 
     const bid = new Bid(
@@ -424,7 +408,7 @@ export class GameController {
       stored.tricks,
       stored.contractType,
       stored.trumpSuit ?? undefined,
-      stored.loner
+      stored.loner,
     );
 
     this.contract = new Contract(bid);
@@ -436,27 +420,27 @@ export class GameController {
 
     const hand = this.playerHands.get(oldId);
     if (hand) {
-        this.playerHands.set(newId, hand);
-        this.playerHands.delete(oldId);
+      this.playerHands.set(newId, hand);
+      this.playerHands.delete(oldId);
     }
 
     if (this.contract && (this.contract as any).declarerId === oldId) {
-        (this.contract as any).declarerId = newId;
+      (this.contract as any).declarerId = newId;
     }
     if (this.winningBid && this.winningBid.bidderId === oldId) {
-        (this.winningBid as any).bidderId = newId;
+      (this.winningBid as any).bidderId = newId;
     }
 
     if (this.game) {
-        this.game.remapPlayerId(oldId, newId);
+      this.game.remapPlayerId(oldId, newId);
     }
 
-    console.log(`[Remap] ${oldId.slice(0,8)} → ${newId.slice(0,8)}`);
-}
+    console.log(`[Remap] ${oldId.slice(0, 8)} → ${newId.slice(0, 8)}`);
+  }
 
   public restoreHand(socketId: string, cards: Card[]): void {
     this.playerHands.set(socketId, new Hand(cards));
-    const player = this.players.find(p => p.id === socketId);
+    const player = this.players.find((p) => p.id === socketId);
     if (player) player.setCards(cards);
-}
+  }
 }

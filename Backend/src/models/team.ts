@@ -1,4 +1,4 @@
-import type Player from "./player.js";
+import type Player from './player.js';
 
 export default class Team {
   teamId: number;
@@ -26,7 +26,7 @@ export default class Team {
     this.gameScore += points;
   }
 
-  getGameScore(): number{
+  getGameScore(): number {
     return this.gameScore;
   }
 
