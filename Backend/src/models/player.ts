@@ -1,4 +1,4 @@
-import type Card from "./card.js";
+import type Card from './card.js';
 
 export default class Player {
   id: string; // This is the socket.id

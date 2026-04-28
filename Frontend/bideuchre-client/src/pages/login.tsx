@@ -49,7 +49,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
           // Carry the token to App.tsx
           onAuthSuccess(data.session.access_token, data.user);
         } else {
-          alert("Account created! Please log in.");
+          alert('Account created! Please log in.');
           setIsLogin(true);
           setPassword('');
         }
@@ -68,32 +68,45 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       <div style={loginCardStyle}>
         <h1 style={loginTitleStyle}>Bid Euchre</h1>
         <p style={loginSubtitleStyle}>
-          {isLogin ? 'Welcome back. Log in to join a table.' : 'Create your account to start playing.'}
+          {isLogin
+            ? 'Welcome back. Log in to join a table.'
+            : 'Create your account to start playing.'}
         </p>
-      <form onSubmit={handleSubmit} style={loginFormStyle}>
-        <input 
-          type="email" placeholder="Email" autoComplete="email"
-          style={loginInputStyle}
-          value={email} onChange={(e) => setEmail(e.target.value)} 
+        <form onSubmit={handleSubmit} style={loginFormStyle}>
+          <input
+            type="email"
+            placeholder="Email"
+            autoComplete="email"
+            style={loginInputStyle}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password (Min 12 chars)"
+            autoComplete={isLogin ? 'current-password' : 'new-password'}
+            style={loginInputStyle}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            required
+          />
+          <button type="submit" style={loginPrimaryButtonStyle(loading)} disabled={loading}>
+            {loading ? 'Working...' : isLogin ? 'Log in' : 'Create account'}
+          </button>
+        </form>
+        {error ? <p style={loginErrorStyle}>{error}</p> : null}
+        <p style={loginHelpTextStyle}>Passwords must be at least 12 characters.</p>
+        <button
+          onClick={() => setIsLogin(!isLogin)}
+          style={loginSecondaryButtonStyle}
+          type="button"
           disabled={loading}
-          required
-        />
-        <input 
-          type="password" placeholder="Password (Min 12 chars)" autoComplete={isLogin ? "current-password" : "new-password"}
-          style={loginInputStyle}
-          value={password} onChange={(e) => setPassword(e.target.value)} 
-          disabled={loading}
-          required
-        />
-        <button type="submit" style={loginPrimaryButtonStyle(loading)} disabled={loading}>
-          {loading ? 'Working...' : isLogin ? 'Log in' : 'Create account'}
+        >
+          {isLogin ? 'Need an account? Sign up' : 'Already have an account? Log in'}
         </button>
-      </form>
-      {error ? <p style={loginErrorStyle}>{error}</p> : null}
-      <p style={loginHelpTextStyle}>Passwords must be at least 12 characters.</p>
-      <button onClick={() => setIsLogin(!isLogin)} style={loginSecondaryButtonStyle} type="button" disabled={loading}>
-        {isLogin ? "Need an account? Sign up" : "Already have an account? Log in"}
-      </button>
       </div>
     </div>
   );

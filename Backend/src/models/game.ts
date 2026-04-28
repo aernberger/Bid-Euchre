@@ -1,9 +1,9 @@
-import { Contract } from "../services/contract.js";
-import Card from "./card.js";
-import Player from "./player.js";
-import { PlayCardProgress, Round } from "./round.js";
-import { RoundResult } from "./roundResult.js";
-import Team from "./team.js";
+import { Contract } from '../services/contract.js';
+import Card from './card.js';
+import Player from './player.js';
+import { PlayCardProgress, Round } from './round.js';
+import { RoundResult } from './roundResult.js';
+import Team from './team.js';
 
 export class Game {
   private currentRound?: Round;
@@ -18,24 +18,24 @@ export class Game {
     this.players = players;
     this.teams = teams;
     // Initialize everyone at 0
-    this.players.forEach(p => this.individualTrickCounts.set(p.id, 0));
+    this.players.forEach((p) => this.individualTrickCounts.set(p.id, 0));
   }
 
   startNewRound(contract: Contract, startingLeaderId?: string) {
     // Reset individual counts for the new hand
-    this.players.forEach(p => this.individualTrickCounts.set(p.id, 0));
-    
+    this.players.forEach((p) => this.individualTrickCounts.set(p.id, 0));
+
     this.currentRound = new Round(
       contract,
       this.teams,
-      this.players.map(player => player.id),
-      startingLeaderId
+      this.players.map((player) => player.id),
+      startingLeaderId,
     );
   }
 
   playCard(playerId: string, card: Card): PlayCardProgress {
     if (!this.currentRound) {
-      throw new Error("No active round");
+      throw new Error('No active round');
     }
 
     const progress = this.currentRound.playCard(playerId, card);
@@ -65,16 +65,16 @@ export class Game {
   }
 
   isGameOver(): boolean {
-    return this.teams.some(team => team.getGameScore() >= this.winningScore);
+    return this.teams.some((team) => team.getGameScore() >= this.winningScore);
   }
 
   getWinningTeam(): Team | undefined {
-    return this.teams.find(team => team.getGameScore() >= this.winningScore);
+    return this.teams.find((team) => team.getGameScore() >= this.winningScore);
   }
 
   private getTeamById(teamId: number): Team {
-    const team = this.teams.find(t => t.teamId === teamId);
-    if (!team) throw new Error("Team not found");
+    const team = this.teams.find((t) => t.teamId === teamId);
+    if (!team) throw new Error('Team not found');
     return team;
   }
 
@@ -87,34 +87,34 @@ export class Game {
 
   public getCurrentTrickPlays(): { playerId: string; card: Card }[] {
     if (!this.currentRound) {
-      return []
+      return [];
     }
-    return this.currentRound.getCurrentTrick().getPlays()
+    return this.currentRound.getCurrentTrick().getPlays();
   }
 
   getTeamGameScores(): { teamId: number; score: number }[] {
     return this.teams.map((t) => ({
       teamId: t.teamId,
       score: t.getGameScore(),
-    }))
+    }));
   }
 
   /** Tricks taken this round by team, or null when not in a playing round. */
   getTeamTricksThisRound(): Record<number, number> | null {
     if (!this.currentRound) {
-      return null
+      return null;
     }
-    return Object.fromEntries(this.currentRound.getTeamTrickCounts())
+    return Object.fromEntries(this.currentRound.getTeamTrickCounts());
   }
 
   public remapPlayerId(oldId: string, newId: string): void {
     if (this.currentRound) {
-        this.currentRound.remapPlayerId(oldId, newId);
+      this.currentRound.remapPlayerId(oldId, newId);
     }
     const count = this.individualTrickCounts.get(oldId);
     if (count !== undefined) {
-        this.individualTrickCounts.set(newId, count);
-        this.individualTrickCounts.delete(oldId);
+      this.individualTrickCounts.set(newId, count);
+      this.individualTrickCounts.delete(oldId);
     }
-}
+  }
 }

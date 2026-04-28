@@ -1,4 +1,4 @@
-import type { ContractType } from "../services/enums/contractType.js";
+import type { ContractType } from '../services/enums/contractType.js';
 
 export interface GameResultData {
   winningTeamId: string | number;

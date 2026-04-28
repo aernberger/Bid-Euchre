@@ -10,7 +10,7 @@ router.post('/signup', async (req, res) => {
 
   // Requirement 1.2.2: Passwords must have at least 12 characters.
   if (!password || password.length < 12) {
-    return res.status(400).json({ error: "Password must be at least 12 characters long." });
+    return res.status(400).json({ error: 'Password must be at least 12 characters long.' });
   }
 
   try {
@@ -18,21 +18,19 @@ router.post('/signup', async (req, res) => {
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true // Bypasses the need for a real email check
+      email_confirm: true, // Bypasses the need for a real email check
     });
 
     if (authError) return res.status(400).json({ error: authError.message });
 
     // 2. Sync that user to your 'profiles' table (Requirements 1.1.1 & 1.1.2)
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([
-        { 
-          id: authUser.user.id, 
-          email: email, 
-          username: email.split('@')[0] // Uses first part of email as default username
-        }
-      ]);
+    const { error: profileError } = await supabase.from('profiles').insert([
+      {
+        id: authUser.user.id,
+        email: email,
+        username: email.split('@')[0], // Uses first part of email as default username
+      },
+    ]);
 
     if (profileError) {
       // Cleanup: delete auth user if profile creation fails
@@ -40,9 +38,9 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: profileError.message });
     }
 
-    res.status(200).json({ message: "Account created successfully!" });
+    res.status(200).json({ message: 'Account created successfully!' });
   } catch (err: any) {
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -69,7 +67,9 @@ router.get('/stats', authenticateUser, async (req: any, res) => {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('games_played, games_won, total_calls_won, successful_calls, sum_bid_amount, hands_played, hands_won, tricks_played, tricks_won')
+    .select(
+      'games_played, games_won, total_calls_won, successful_calls, sum_bid_amount, hands_played, hands_won, tricks_played, tricks_won',
+    )
     .eq('id', userId)
     .single();
 
@@ -145,10 +145,7 @@ router.patch('/profile', authenticateUser, async (req: any, res) => {
     return res.status(400).json({ error: 'No profile changes were provided.' });
   }
 
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId);
+  const { error: profileError } = await supabase.from('profiles').update(updates).eq('id', userId);
 
   if (profileError) {
     return res.status(400).json({ error: profileError.message });
@@ -156,7 +153,7 @@ router.patch('/profile', authenticateUser, async (req: any, res) => {
 
   const { data: metadataResult, error: metadataError } = await supabase.auth.admin.updateUserById(
     userId,
-    { user_metadata: metadataUpdates }
+    { user_metadata: metadataUpdates },
   );
 
   if (metadataError) {

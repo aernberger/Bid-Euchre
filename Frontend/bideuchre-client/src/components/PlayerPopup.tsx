@@ -1,93 +1,93 @@
-import React from "react";
-import { Users } from "lucide-react";
+import React from 'react';
+import { Users } from 'lucide-react';
 
 const floatingButtonStyle: React.CSSProperties = {
-  position: "fixed",
-  top: "16px",
-  right: "16px",
-  width: "52px",
-  height: "52px",
-  borderRadius: "999px",
-  border: "1px solid #d6dbe7",
-  background: "#ffffff",
-  color: "#1f2937",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  boxShadow: "0 10px 28px rgba(15, 23, 42, 0.18)",
+  position: 'fixed',
+  top: '16px',
+  right: '16px',
+  width: '52px',
+  height: '52px',
+  borderRadius: '999px',
+  border: '1px solid #d6dbe7',
+  background: '#ffffff',
+  color: '#1f2937',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 10px 28px rgba(15, 23, 42, 0.18)',
   zIndex: 1200,
 };
 
 const backdropStyle: React.CSSProperties = {
-  position: "fixed",
+  position: 'fixed',
   inset: 0,
-  background: "rgba(15, 23, 42, 0.5)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "16px",
+  background: 'rgba(15, 23, 42, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '16px',
   zIndex: 1300,
 };
 
 const modalStyle: React.CSSProperties = {
-  width: "min(92vw, 680px)",
-  minHeight: "360px",
-  borderRadius: "16px",
-  border: "1px solid #d6dbe7",
-  background: "#ffffff",
-  boxShadow: "0 28px 70px rgba(15, 23, 42, 0.28)",
-  overflow: "hidden",
+  width: 'min(92vw, 680px)',
+  minHeight: '360px',
+  borderRadius: '16px',
+  border: '1px solid #d6dbe7',
+  background: '#ffffff',
+  boxShadow: '0 28px 70px rgba(15, 23, 42, 0.28)',
+  overflow: 'hidden',
 };
 
 const headerStyle: React.CSSProperties = {
-  padding: "14px 16px",
-  borderBottom: "1px solid #e5e7eb",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
+  padding: '14px 16px',
+  borderBottom: '1px solid #e5e7eb',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
 };
 
 const titleStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: "1.05rem",
+  fontSize: '1.05rem',
   fontWeight: 700,
-  color: "#111827",
+  color: '#111827',
 };
 
 const closeButtonStyle: React.CSSProperties = {
-  border: "1px solid #d1d5db",
-  background: "#ffffff",
-  color: "#374151",
-  borderRadius: "8px",
-  padding: "6px 10px",
-  cursor: "pointer",
+  border: '1px solid #d1d5db',
+  background: '#ffffff',
+  color: '#374151',
+  borderRadius: '8px',
+  padding: '6px 10px',
+  cursor: 'pointer',
   fontWeight: 600,
 };
 
 const tabsRowStyle: React.CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  padding: "12px 16px 0 16px",
+  display: 'flex',
+  gap: '8px',
+  padding: '12px 16px 0 16px',
 };
 
 const tabBaseStyle: React.CSSProperties = {
-  borderRadius: "10px",
-  border: "1px solid #d1d5db",
-  background: "#ffffff",
-  color: "#374151",
-  padding: "8px 12px",
-  cursor: "pointer",
+  borderRadius: '10px',
+  border: '1px solid #d1d5db',
+  background: '#ffffff',
+  color: '#374151',
+  padding: '8px 12px',
+  cursor: 'pointer',
   fontWeight: 600,
 };
 
 const contentStyle: React.CSSProperties = {
-  padding: "16px",
-  color: "#1f2937",
+  padding: '16px',
+  color: '#1f2937',
   lineHeight: 1.45,
 };
 
-type PlayerTab = "stats" | "settings";
+type PlayerTab = 'stats' | 'settings';
 interface PlayerStats {
   gamesPlayed: number;
   gamesWon: number;
@@ -107,77 +107,77 @@ interface PlayerPopupProps {
 }
 
 const fieldLabelStyle: React.CSSProperties = {
-  display: "block",
-  marginBottom: "6px",
-  fontSize: "0.9rem",
+  display: 'block',
+  marginBottom: '6px',
+  fontSize: '0.9rem',
   fontWeight: 600,
-  color: "#1f2937",
+  color: '#1f2937',
 };
 
 const inputStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  borderRadius: "10px",
-  border: "1px solid #d1d5db",
-  padding: "10px 12px",
-  fontSize: "0.95rem",
-  color: "#111827",
+  width: '100%',
+  boxSizing: 'border-box',
+  borderRadius: '10px',
+  border: '1px solid #d1d5db',
+  padding: '10px 12px',
+  fontSize: '0.95rem',
+  color: '#111827',
 };
 
 const helperTextStyle: React.CSSProperties = {
-  marginTop: "6px",
+  marginTop: '6px',
   marginBottom: 0,
-  fontSize: "0.82rem",
-  color: "#6b7280",
+  fontSize: '0.82rem',
+  color: '#6b7280',
 };
 
 const saveButtonStyle = (disabled: boolean): React.CSSProperties => ({
-  borderRadius: "10px",
-  border: "1px solid #1d4ed8",
-  background: disabled ? "#93c5fd" : "#2563eb",
-  color: "#ffffff",
-  padding: "10px 14px",
-  cursor: disabled ? "not-allowed" : "pointer",
+  borderRadius: '10px',
+  border: '1px solid #1d4ed8',
+  background: disabled ? '#93c5fd' : '#2563eb',
+  color: '#ffffff',
+  padding: '10px 14px',
+  cursor: disabled ? 'not-allowed' : 'pointer',
   fontWeight: 700,
 });
 
 const statusTextStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: "0.9rem",
+  fontSize: '0.9rem',
 };
 
 const statsGridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: "10px",
-  marginTop: "8px",
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: '10px',
+  marginTop: '8px',
 };
 
 const statCardStyle: React.CSSProperties = {
-  border: "1px solid #e5e7eb",
-  borderRadius: "10px",
-  padding: "10px 12px",
-  background: "#f9fafb",
+  border: '1px solid #e5e7eb',
+  borderRadius: '10px',
+  padding: '10px 12px',
+  background: '#f9fafb',
 };
 
 const statLabelStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: "0.8rem",
-  color: "#6b7280",
+  fontSize: '0.8rem',
+  color: '#6b7280',
 };
 
 const statValueStyle: React.CSSProperties = {
-  margin: "2px 0 0 0",
-  fontSize: "1.1rem",
+  margin: '2px 0 0 0',
+  fontSize: '1.1rem',
   fontWeight: 700,
-  color: "#111827",
+  color: '#111827',
 };
 
 export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupProps) {
   const [open, setOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<PlayerTab>("stats");
-  const [username, setUsername] = React.useState("");
-  const [profilePicUrl, setProfilePicUrl] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState<PlayerTab>('stats');
+  const [username, setUsername] = React.useState('');
+  const [profilePicUrl, setProfilePicUrl] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -188,15 +188,16 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
 
   const currentUsername = React.useMemo(
     () =>
-      (typeof user?.user_metadata?.username === "string" && user.user_metadata.username) ||
-      (typeof user?.email === "string" ? user.email : "Player"),
-    [user]
+      (typeof user?.user_metadata?.username === 'string' && user.user_metadata.username) ||
+      (typeof user?.email === 'string' ? user.email : 'Player'),
+    [user],
   );
   const currentAvatarUrl = React.useMemo(
     () =>
-      (typeof user?.user_metadata?.profile_pic_url === "string" && user.user_metadata.profile_pic_url) ||
-      (typeof user?.user_metadata?.avatar_url === "string" ? user.user_metadata.avatar_url : ""),
-    [user]
+      (typeof user?.user_metadata?.profile_pic_url === 'string' &&
+        user.user_metadata.profile_pic_url) ||
+      (typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''),
+    [user],
   );
 
   React.useEffect(() => {
@@ -212,14 +213,14 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
   }, [currentAvatarUrl]);
 
   React.useEffect(() => {
-    if (!open || activeTab !== "stats") return;
+    if (!open || activeTab !== 'stats') return;
 
     let isMounted = true;
     setStatsLoading(true);
     setStatsError(null);
 
-    fetch("http://localhost:8000/api/auth/stats", {
-      method: "GET",
+    fetch('http://localhost:8000/api/auth/stats', {
+      method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -227,7 +228,7 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data?.error ?? "Could not load player stats.");
+          throw new Error(data?.error ?? 'Could not load player stats.');
         }
         const raw = data?.stats ?? {};
         return {
@@ -248,7 +249,7 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
       })
       .catch((err: any) => {
         if (!isMounted) return;
-        setStatsError(err?.message ?? "Could not load player stats.");
+        setStatsError(err?.message ?? 'Could not load player stats.');
       })
       .finally(() => {
         if (!isMounted) return;
@@ -263,12 +264,12 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
   React.useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === 'Escape') {
         setOpen(false);
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
   const handleSaveSettings = async (event: React.FormEvent) => {
@@ -279,16 +280,16 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
     const trimmedUsername = username.trim();
     const trimmedProfilePicUrl = profilePicUrl.trim();
     if (!trimmedUsername) {
-      setError("Username cannot be empty.");
+      setError('Username cannot be empty.');
       return;
     }
 
     setSaving(true);
     try {
-      const response = await fetch("http://localhost:8000/api/auth/profile", {
-        method: "PATCH",
+      const response = await fetch('http://localhost:8000/api/auth/profile', {
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -299,16 +300,16 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
 
       const data = await response.json();
       if (!response.ok) {
-        setError(data?.error ?? "Could not update your profile.");
+        setError(data?.error ?? 'Could not update your profile.');
         return;
       }
 
       if (data?.user) {
         onUserUpdated(data.user);
       }
-      setSuccess("Profile updated.");
+      setSuccess('Profile updated.');
     } catch {
-      setError("Unable to reach the server. Please try again.");
+      setError('Unable to reach the server. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -322,14 +323,14 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
   const formatPercent = (wins: unknown, played: unknown): string => {
     const winsN = toSafeNumber(wins);
     const playedN = toSafeNumber(played);
-    if (playedN <= 0) return "0%";
+    if (playedN <= 0) return '0%';
     return `${Math.round((winsN / playedN) * 100)}%`;
   };
 
   const formatAverageBid = (sumBidAmount: unknown, totalCallsWon: unknown): string => {
     const sumN = toSafeNumber(sumBidAmount);
     const callsN = toSafeNumber(totalCallsWon);
-    if (callsN <= 0) return "0.00";
+    if (callsN <= 0) return '0.00';
     return (sumN / callsN).toFixed(2);
   };
 
@@ -346,10 +347,10 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
             src={currentAvatarUrl}
             alt="Player avatar"
             style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: "999px",
-              objectFit: "cover",
+              width: '100%',
+              height: '100%',
+              borderRadius: '999px',
+              objectFit: 'cover',
             }}
             onError={() => setButtonAvatarLoadFailed(true)}
           />
@@ -371,24 +372,24 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
             <div style={tabsRowStyle}>
               <button
                 type="button"
-                onClick={() => setActiveTab("stats")}
+                onClick={() => setActiveTab('stats')}
                 style={{
                   ...tabBaseStyle,
-                  borderColor: activeTab === "stats" ? "#2563eb" : tabBaseStyle.borderColor,
-                  background: activeTab === "stats" ? "#eff6ff" : tabBaseStyle.background,
-                  color: activeTab === "stats" ? "#1d4ed8" : tabBaseStyle.color,
+                  borderColor: activeTab === 'stats' ? '#2563eb' : tabBaseStyle.borderColor,
+                  background: activeTab === 'stats' ? '#eff6ff' : tabBaseStyle.background,
+                  color: activeTab === 'stats' ? '#1d4ed8' : tabBaseStyle.color,
                 }}
               >
                 Player stats
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("settings")}
+                onClick={() => setActiveTab('settings')}
                 style={{
                   ...tabBaseStyle,
-                  borderColor: activeTab === "settings" ? "#2563eb" : tabBaseStyle.borderColor,
-                  background: activeTab === "settings" ? "#eff6ff" : tabBaseStyle.background,
-                  color: activeTab === "settings" ? "#1d4ed8" : tabBaseStyle.color,
+                  borderColor: activeTab === 'settings' ? '#2563eb' : tabBaseStyle.borderColor,
+                  background: activeTab === 'settings' ? '#eff6ff' : tabBaseStyle.background,
+                  color: activeTab === 'settings' ? '#1d4ed8' : tabBaseStyle.color,
                 }}
               >
                 Player settings
@@ -396,12 +397,12 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
             </div>
 
             <div style={contentStyle}>
-              {activeTab === "stats" ? (
+              {activeTab === 'stats' ? (
                 <>
                   <h3 style={{ marginTop: 0 }}>Player stats</h3>
                   {statsLoading ? <p style={{ margin: 0 }}>Loading stats...</p> : null}
                   {statsError ? (
-                    <p style={{ ...statusTextStyle, color: "#b91c1c" }} role="alert">
+                    <p style={{ ...statusTextStyle, color: '#b91c1c' }} role="alert">
                       {statsError}
                     </p>
                   ) : null}
@@ -413,7 +414,9 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Game Win %</p>
-                        <p style={statValueStyle}>{formatPercent(stats.gamesWon, stats.gamesPlayed)}</p>
+                        <p style={statValueStyle}>
+                          {formatPercent(stats.gamesWon, stats.gamesPlayed)}
+                        </p>
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Hands played</p>
@@ -421,7 +424,9 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Hands Win %</p>
-                        <p style={statValueStyle}>{formatPercent(stats.handsWon, stats.handsPlayed)}</p>
+                        <p style={statValueStyle}>
+                          {formatPercent(stats.handsWon, stats.handsPlayed)}
+                        </p>
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Tricks played</p>
@@ -429,15 +434,21 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Tricks Win %</p>
-                        <p style={statValueStyle}>{formatPercent(stats.tricksWon, stats.tricksPlayed)}</p>
+                        <p style={statValueStyle}>
+                          {formatPercent(stats.tricksWon, stats.tricksPlayed)}
+                        </p>
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Call Success %</p>
-                        <p style={statValueStyle}>{formatPercent(stats.successfulCalls, stats.totalCallsWon)}</p>
+                        <p style={statValueStyle}>
+                          {formatPercent(stats.successfulCalls, stats.totalCallsWon)}
+                        </p>
                       </div>
                       <div style={statCardStyle}>
                         <p style={statLabelStyle}>Average Bid</p>
-                        <p style={statValueStyle}>{formatAverageBid(stats.sumBidAmount, stats.totalCallsWon)}</p>
+                        <p style={statValueStyle}>
+                          {formatAverageBid(stats.sumBidAmount, stats.totalCallsWon)}
+                        </p>
                       </div>
                     </div>
                   ) : null}
@@ -445,7 +456,7 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
               ) : (
                 <>
                   <h3 style={{ marginTop: 0 }}>Player settings</h3>
-                  <form onSubmit={handleSaveSettings} style={{ display: "grid", gap: "12px" }}>
+                  <form onSubmit={handleSaveSettings} style={{ display: 'grid', gap: '12px' }}>
                     <div>
                       <label htmlFor="player-username" style={fieldLabelStyle}>
                         Username
@@ -484,28 +495,30 @@ export default function PlayerPopup({ token, user, onUserUpdated }: PlayerPopupP
                         src={profilePicUrl.trim()}
                         alt="Profile preview"
                         style={{
-                          width: "84px",
-                          height: "84px",
-                          borderRadius: "999px",
-                          objectFit: "cover",
-                          border: "1px solid #d1d5db",
+                          width: '84px',
+                          height: '84px',
+                          borderRadius: '999px',
+                          objectFit: 'cover',
+                          border: '1px solid #d1d5db',
                         }}
                         onError={(event) => {
-                          (event.currentTarget as HTMLImageElement).style.display = "none";
+                          (event.currentTarget as HTMLImageElement).style.display = 'none';
                         }}
                         onLoad={(event) => {
-                          (event.currentTarget as HTMLImageElement).style.display = "block";
+                          (event.currentTarget as HTMLImageElement).style.display = 'block';
                         }}
                       />
                     ) : null}
                     {error ? (
-                      <p style={{ ...statusTextStyle, color: "#b91c1c" }} role="alert">
+                      <p style={{ ...statusTextStyle, color: '#b91c1c' }} role="alert">
                         {error}
                       </p>
                     ) : null}
-                    {success ? <p style={{ ...statusTextStyle, color: "#166534" }}>{success}</p> : null}
+                    {success ? (
+                      <p style={{ ...statusTextStyle, color: '#166534' }}>{success}</p>
+                    ) : null}
                     <button type="submit" style={saveButtonStyle(saving)} disabled={saving}>
-                      {saving ? "Saving..." : "Save changes"}
+                      {saving ? 'Saving...' : 'Save changes'}
                     </button>
                   </form>
                 </>
