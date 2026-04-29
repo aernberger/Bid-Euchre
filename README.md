@@ -1,0 +1,60 @@
+
+# Game Summary
+
+- Bideuchre is a four player trick-taking card game. Where partners sit across from each other.
+- The goal of the game is to be the first team to win 21 points.
+- It holds unique complexitities with difficult euchre logic and advanced bidding rules and strategies.
+
+# Gameplay
+
+## The Cards
+- The deck consists of 24 cards, which are the 9, 10, Jack, Queen, King, and Ace of each suit (hearts, diamonds, clubs, and spades).
+- All cards are dealt out amongst the four players each round, so each player has six cards.
+
+## The Bidding Phase
+- Bidding starts with the player left of the dealer.
+- The first player must make a bid.
+- Each bid consists of two parts: the number of tricks the player expects their team to take, and the type of contract they are playing (High, Low, or Suited).
+- A trick is a round of play in which each player plays one card, and the highest card (dependent on contract type) wins the trick.
+- Each player can either make a bid that is higher in value than the previous bid or pass.
+- A bid is higher in value if it has a higher number of tricks or if it has the same number of tricks but a higher contract type (High > Suited > Low).
+
+## The Playing Phase
+- The player to the left of the contract declarer starts the round by leading a card.
+- Players must follow the led suit if they can.
+- If a player is void in the led suit, they may play any card.
+- The winner of each trick is determined by the contract type.
+- High contract: the highest card of the led suit wins the trick (A > K > Q > J > 10 > 9)
+- Suited trump contract: Right Bower (Jack of trump suit) > Left Bower (Jack of same color of trump suit) > A > K > Q > 10 > 9 of trump suit followed by the highest card of the led suit.
+- Low contract: the lowest card of the led suit wins the trick (9 > 10 > J > Q > K > A)
+
+## Winning and Scoring:
+- If the bidding team meets or exceeds their announced trick target, they score points equal to the number of tricks they bid (1-6).
+- If the bidding team fails to meet their announced trick target, they lose points equal to the number of tricks they bid (1-6).
+
+## Shooting the Moon (Going Alone/Loner)
+- If a player believes they can win all the tricks in a round, they may declare "Shooting the Moon" during the bidding phase.
+- Only the player who declared "Shooting the Moon" plays their cards alone, without the help of their partner.
+- If successful, the player scores 12 points for their team.
+- If unsuccessful, the player loses 12 for their team.
+
+# Features
+- An intuitive sign up and log in system that requires an email and password.
+- A secure password system that requires a minimum of 12 characters.
+- A user friendly lobby page that displays available games and allows users to join or create a game.
+- A profile button that has a tab that allows users to view and edit their profile information, including their username and profile picture.
+- A stats tab under the profile button that displays the user's game statistics, such as total games played, winning percentage, average bid, and more.
+- A simple user friendly rules button that displays the rules of the game in an easy to understand format.
+- A sleek bidding box design that clearly labels available bids, who is currently bidding, and the current highest bid.
+- An intuitive card box that clearly shows each player's hand with each suit and face clearly labeled and large enough to read easily.
+- A gameplay mechanic that highlights a card when hovered over and greys out any cards not allowed to be played in the trick.
+- A visually appealing game board that displays the cards in play, the current score of the tricks taken in the round, the bid, and the players.
+- A thoughtfully designed red and blue team distinction to make it easier to follow gameplay for whose turn it is, who declared the bid, and who is scoring points.
+- An actively updating total scoreboard that changes at the end of each round before shifting the dealer and dealing new cards for the next round.
+- Allows for players to leave the game at any time, showing opponents a player left and allowing the player to rejoin when ready to resume gameplay. Doesn't allow two of the same player in a game.
+- A clear message when a player wins or loses a game when a team reaches 21.
+
+# Running the Code:
+- cd backend -> npm run dev
+- cd frontend -> cd bideuchre-client -> npm start
+- Must open four tabs and have all four players in a game to start gameplay.
