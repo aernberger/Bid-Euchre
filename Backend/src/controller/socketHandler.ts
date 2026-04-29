@@ -31,6 +31,7 @@ export default class SocketHandler {
   private socketToGame = new Map<string, string>();
 
   private userToSocket = new Map<string, string>();
+  private intentionalLeave = new Set<string>();
 
   constructor(wss: Server) {
     this.wss = wss;
@@ -296,6 +297,10 @@ private async handleReconnect(
     existingPlayer: Player
 ) {
     const oldSocketId = existingPlayer.id;
+    const isReconnect = !this.wss.sockets.sockets.has(oldSocketId) || (!!data.supabaseId && this.intentionalLeave.has(data.supabaseId));
+
+    if (data.supabaseId) this.intentionalLeave.delete(data.supabaseId);
+
     existingPlayer.id = socket.id;
     this.socketToGame.delete(oldSocketId);
     controller.remapPlayerSocketId(oldSocketId, socket.id);
@@ -322,11 +327,13 @@ private async handleReconnect(
     this.emitGameUpdate(gameId, response);
     this.broadcastLobby();
 
-    this.wss.to(gameRoomName(gameId)).emit("playerReconnected", {
-        ...controller.getPublicState(),
-        type: "PLAYER_RECONNECTED",
-        reconnectedPlayerId: socket.id,
-    });
+    if (isReconnect) {
+        this.wss.to(gameRoomName(gameId)).emit("playerReconnected", {
+            ...controller.getPublicState(),
+            type: "PLAYER_RECONNECTED",
+            reconnectedPlayerId: socket.id,
+        });
+    }
 
     await this.deliverHand(socket, data.supabaseId ?? null, controller);
 }
@@ -444,6 +451,7 @@ private async deliverHand(
 
     if (phase && phase !== GamePhase.WAITING) {
       if (player?.supabaseId && gameId) {
+        this.intentionalLeave.add(player.supabaseId);
         supabase.rpc('set_player_connection', {
           p_game_id: gameId,
           p_user_id: player.supabaseId,
