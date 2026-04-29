@@ -28,7 +28,7 @@ const fontSizes: Record<'xs' | 'sm' | 'md' | 'lg', string> = {
   lg: 'clamp(12px, 1.8vw, 15px)',
 };
 
-/** Compact pill styling (matches the hand “Blue team” badge). */
+
 export function statPill(
   variant: 'blue' | 'red' | 'neutral',
   size: 'xs' | 'sm' | 'md' | 'lg' = 'sm',

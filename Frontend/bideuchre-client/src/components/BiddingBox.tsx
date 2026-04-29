@@ -20,9 +20,7 @@ interface BiddingBoxProperties {
   currentHighBid: Bid | null;
   onBidSubmit: (bid: Bid) => void;
   isPlayerTurn: boolean;
-  /** Display name of the player whose turn it is to bid (from server `currentPlayerId`). */
   currentBidderName?: string | null;
-  /** Current bidder only: blue = you or partner, red = opponent, neutral = waiting / unknown. */
   turnStatusTone?: 'blue' | 'red' | 'neutral';
 }
 
@@ -50,7 +48,6 @@ export default function BiddingBox({
   const [selectedType, setSelectedType] = useState<BidType | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
   const [selectedSuit, setSelectedSuit] = useState<Suit | null>(null);
-  /** Six-bid only: play without partner (backend scoring). */
   const [wantLoner, setWantLoner] = useState(false);
 
   const statusPillVariant: 'blue' | 'red' | 'neutral' =

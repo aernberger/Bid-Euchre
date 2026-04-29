@@ -6,6 +6,6 @@ export interface Bid {
   type: BidType;
   number: number;
   suit?: Suit;
-  /** Only valid with six tricks; partner sits out for the hand. */
+  //Only valid with six tricks; partner sits out for the hand.
   loner?: boolean;
 }

@@ -41,9 +41,9 @@ export class Contract {
     return this.loner && this.tricksRequired === 6;
   }
 
-  /**
-   * Code needed for suited contract type comparison for the jacks
-   */
+  
+   // Code needed for suited contract type comparison for the jacks
+   
   private isSameColorSuit(suitA: SuitType, suitB: SuitType): boolean {
     const red: SuitType[] = [Suit.HEARTS, Suit.DIAMONDS];
     const black: SuitType[] = [Suit.SPADES, Suit.CLUBS];
