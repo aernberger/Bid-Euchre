@@ -41,7 +41,6 @@ export function connectSocket(token: string, onReady?: (socketId: string) => voi
   });
 
   socket.on('connect', () => {
-    console.log('Socket connected:', socket?.id);
     if (socket?.id) onReady?.(socket.id);
   });
 
