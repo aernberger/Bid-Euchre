@@ -23,21 +23,21 @@ import {
 interface GameBoxProperties {
   currentTrick: Card[];
   bid: Bid | null;
-  /** Declarer display name for the contract line (pill color still uses contractBidRelative). */
+  //Declarer display name for the contract line (pill color still uses contractBidRelative).
   declarerName?: string | null;
   contractBidRelative?: 'us' | 'them' | null;
   leftCount?: number;
   topCount?: number;
   rightCount?: number;
   opponentNames?: { left: string; top: string; right: string };
-  /** Only the current player’s seat is colored: blue = you/partner, red = opponent. */
+  //Only the current player’s seat is colored: blue = you/partner, red = opponent.
   seatTurnTone?: {
     left: 'idle' | 'red' | 'blue';
     top: 'idle' | 'blue' | 'red';
     right: 'idle' | 'red' | 'blue';
   };
   width?: string;
-  /** Tricks taken this hand (playing phase only), from the player’s perspective. */
+  //ricks taken this hand (playing phase only), from the player’s perspective.
   tricksThisHand?: { ours: number; theirs: number } | null;
 }
 
@@ -98,9 +98,7 @@ export default function GameBox({
 
   return (
     <WhiteBox height={'min(75vh, 480px)'} width={width}>
-      {/*this part uses the CSS grid*/}
       <div style={boardGridStyle}>
-        {/* TOP OPPONENT - name + stacked cards */}
         <div style={seatColumnStyle('2', '1')}>
           <span style={namePillStyle('top', seatTurnTone.top)} title={opponentNames.top}>
             {opponentNames.top}
@@ -113,8 +111,6 @@ export default function GameBox({
             ))}
           </div>
         </div>
-
-        {/* LEFT OPPONENT - name + stacked cards */}
         <div style={sideSeatColumnStyle('1')}>
           <span style={namePillStyle('left', seatTurnTone.left)} title={opponentNames.left}>
             {opponentNames.left}
@@ -128,7 +124,6 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* CENTER — contract + trick in progress */}
         <div style={centerPanelStyle}>
           <div
             style={statPill(bidPillVariant, 'lg', {
@@ -166,7 +161,6 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* RIGHT OPPONENT - name + stacked cards */}
         <div style={sideSeatColumnStyle('3')}>
           <span style={namePillStyle('right', seatTurnTone.right)} title={opponentNames.right}>
             {opponentNames.right}
@@ -180,7 +174,6 @@ export default function GameBox({
           </div>
         </div>
 
-        {/* Bottom row intentionally empty (your hand is in the separate WhiteBox below) */}
       </div>
     </WhiteBox>
   );
