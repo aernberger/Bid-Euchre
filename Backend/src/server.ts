@@ -25,10 +25,6 @@ app.use(express.json());
 app.use('/api/games', gameRoutes);
 app.use('/api/auth', authRoutes);
 
-// app.listen(8000, () => {
-//   console.log("Server running on port 8000");
-// });
-
 app.get('/test-db', async (req, res) => {
   try {
     const { data, error } = await supabase.from('profiles').select('id').limit(1);
@@ -56,7 +52,7 @@ const wss = new Server(httpServer, {
         ? process.env.CLIENT_ORIGIN
           ? [process.env.CLIENT_ORIGIN]
           : false
-        : true, // allow any origin in dev (reflects request origin)
+        : true,
     methods: ['GET', 'POST'],
   },
 });

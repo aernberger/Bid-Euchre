@@ -8,6 +8,10 @@ import { GamePhase } from './enums/gamePhase.js';
 import { StatsService } from '../services/statsService.js';
 import { supabaseAdmin as supabase } from '../supabaseClient.js';
 
+/**
+ * handles socket connectionsbetween backend and supabase
+ */
+
 interface PlayerJoinData {
   name?: string;
   supabaseId?: string;
@@ -24,7 +28,6 @@ export default class SocketHandler {
   private wss: Server;
   private controller!: GameController;
   private games = new Map<string, GameController>();
-  /** socket.id → gameId while seated at a table */
   private socketToGame = new Map<string, string>();
 
   private userToSocket = new Map<string, string>();
@@ -86,11 +89,10 @@ export default class SocketHandler {
       if (oldSocket) {
         console.log(`Kicking old session for user ${supabaseId}`);
         oldSocket.emit('errorMessage', 'You have been logged in from another tab.');
-        oldSocket.disconnect(true); // true forces immediate close
+        oldSocket.disconnect(true);
       }
     }
 
-    // Register this socket as the active one for this user
     this.userToSocket.set(supabaseId, socketId);
   }
 
@@ -560,7 +562,6 @@ export default class SocketHandler {
           } else if (newRoundRow) {
             controller.currentRoundDbId = newRoundRow.id;
 
-            // Persist new dealt hands immediately
             const newHands = controller.getHandsForPersistence();
             for (const { supabaseId, cards } of newHands) {
               await supabase

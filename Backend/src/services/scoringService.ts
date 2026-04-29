@@ -2,6 +2,10 @@ import { RoundResult } from '../models/roundResult.js';
 import Team from '../models/team.js';
 import { Contract } from './contract.js';
 
+/**
+ * scores rounds, awarding appropriate points to each team.s
+ */
+
 export class ScoringEngine {
   static calculateScore(
     contract: Contract,

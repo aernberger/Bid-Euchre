@@ -27,7 +27,6 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
     e.preventDefault();
     setError('');
 
-    // 1.2.2 Enforcement on the frontend (first line of defense)
     if (password.length < 12) {
       setError('Password must be at least 12 characters.');
       return;
@@ -46,7 +45,6 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 
       if (response.ok) {
         if (isLogin) {
-          // Carry the token to App.tsx
           onAuthSuccess(data.session.access_token, data.user);
         } else {
           alert('Account created! Please log in.');

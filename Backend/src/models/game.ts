@@ -5,24 +5,25 @@ import { PlayCardProgress, Round } from './round.js';
 import { RoundResult } from './roundResult.js';
 import Team from './team.js';
 
+/**
+ * game class, represents entire game and cutilizes all other backend classes
+ */
+
 export class Game {
   private currentRound?: Round;
   private readonly teams: Team[];
   private readonly players: Player[];
   private readonly winningScore = 21;
 
-  // NEW: Track individual tricks for stats (Requirement 5.4.1)
   private individualTrickCounts: Map<string, number> = new Map();
 
   constructor(players: Player[], teams: Team[]) {
     this.players = players;
     this.teams = teams;
-    // Initialize everyone at 0
     this.players.forEach((p) => this.individualTrickCounts.set(p.id, 0));
   }
 
   startNewRound(contract: Contract, startingLeaderId?: string) {
-    // Reset individual counts for the new hand
     this.players.forEach((p) => this.individualTrickCounts.set(p.id, 0));
 
     this.currentRound = new Round(
@@ -39,8 +40,7 @@ export class Game {
     }
 
     const progress = this.currentRound.playCard(playerId, card);
-
-    // Update individual trick counts when a trick is finished
+    
     if (progress.trickCompleted && progress.trickWinnerId) {
       const current = this.individualTrickCounts.get(progress.trickWinnerId) || 0;
       this.individualTrickCounts.set(progress.trickWinnerId, current + 1);
@@ -48,13 +48,11 @@ export class Game {
 
     if (progress.roundResult) {
       this.applyRoundResult(progress.roundResult);
-      // We do NOT nullify currentRound yet—the controller might need it for a split second
     }
 
     return progress;
   }
 
-  // Helper for StatsService
   public getIndividualTrickCounts(): Record<string, number> {
     return Object.fromEntries(this.individualTrickCounts);
   }
@@ -99,7 +97,6 @@ export class Game {
     }));
   }
 
-  /** Tricks taken this round by team, or null when not in a playing round. */
   getTeamTricksThisRound(): Record<number, number> | null {
     if (!this.currentRound) {
       return null;

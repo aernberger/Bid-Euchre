@@ -1,11 +1,11 @@
 import type Card from './card.js';
 
 export default class Player {
-  id: string; // This is the socket.id
-  supabaseId: string; // The UUID from auth.users / profiles
+  id: string;
+  supabaseId: string;
   name: string;
   hand: Card[] = [];
-  teamId: number | null = null; // Helpful for the scoring service later
+  teamId: number | null = null;
 
   constructor(id: string, name: string, supabaseId: string) {
     this.id = id;
