@@ -32,6 +32,10 @@ import {
   scoreboardWrapStyle,
 } from './game.styles';
 
+/**
+ * runs game logic on frontend
+ */
+
 const contractTypeToBidType: Record<number, BidType> = {
   0: 'Low',
   1: 'Suited',

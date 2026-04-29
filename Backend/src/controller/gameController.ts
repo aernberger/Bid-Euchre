@@ -10,6 +10,10 @@ import Team from '../models/team.js';
 import { ContractType } from '../services/enums/contractType.js';
 import { SuitType } from '../models/enums/suit.js';
 
+/**
+ * controls game logic on backend
+ */
+
 export class GameController {
   private game!: Game;
   private players: Player[] = [];
@@ -29,7 +33,7 @@ export class GameController {
 
   private roundNumber: number = 0;
 
-  /** Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid). */
+  //Returns a minimal public state snapshot for clients (phase, players, currentPlayerId, highestBid, winningBid).
   getPublicState() {
     const currentPlayer = this.players[this.currentPlayerIndex];
     const playerHandCounts = Object.fromEntries(
@@ -143,7 +147,6 @@ export class GameController {
     }
 
     const hand = this.getPlayerHand(playerId);
-    // Delegate to the Game model to check the current round's rules
     return this.game.getLegalMovesForPlayer(playerId, hand, this.contract);
   }
 
@@ -211,7 +214,6 @@ export class GameController {
     this.contract = new Contract(this.highestBid);
     this.winningBid = this.highestBid;
 
-    // determine first player: player to the left of the declarer
     const declarerIndex = this.players.findIndex((p) => p.id === this.contract!.declarerId);
 
     if (declarerIndex === -1) {
@@ -220,7 +222,6 @@ export class GameController {
       this.currentPlayerIndex = declarerIndex === this.players.length - 1 ? 0 : declarerIndex + 1;
     }
 
-    // pass the player id who will lead the first trick into Game.startNewRound
     const startingLeaderId = this.players[this.currentPlayerIndex].id;
     this.game.startNewRound(this.contract, startingLeaderId);
 
@@ -290,7 +291,7 @@ export class GameController {
       throw new Error('Not your turn');
     }
 
-    // 1. VALIDATION
+    //validation
     const legalMoves = this.getPlayableCards(playerId);
     const isLegalCard = legalMoves.some(
       (legalCard) => legalCard.suit === card.suit && legalCard.face === card.face,
@@ -299,25 +300,24 @@ export class GameController {
       throw new Error('Illegal card play (must follow suit)');
     }
 
-    // 2. UPDATE HAND STATE (The part I missed)
+    //updating hand state
     const playerHand = this.playerHands.get(playerId);
     if (!playerHand) {
       throw new Error('Player hand not found');
     }
 
-    // Remove from the Hand model and update the Player object
+    // remove from the hand model and update the player object
     playerHand.removeCard(card);
     currentPlayer.setCards(playerHand.getCards());
 
-    // 3. EXECUTE GAME ENGINE LOGIC
+    //game logic
     const playProgress = this.game.playCard(playerId, card);
 
-    // Advance the turn
+    //advance the turn
     this.setCurrentPlayerById(playProgress.nextPlayerId);
 
-    // 4. HANDLE ROUND/GAME COMPLETION
+    // handle round and game completion
     if (playProgress.roundResult) {
-      // Capture the stats snapshot before we reset the round state
       const statsPayload = {
         roundResult: playProgress.roundResult,
         declarerId: this.contract?.declarerId,
@@ -348,7 +348,7 @@ export class GameController {
       };
     }
 
-    // 5. STANDARD PLAY RESPONSE
+    //play response
     return {
       type: 'CARD_PLAYED',
       playerId,

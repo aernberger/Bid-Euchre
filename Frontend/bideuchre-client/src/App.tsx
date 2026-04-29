@@ -42,7 +42,6 @@ export default function App() {
     try {
       sessionStorage.removeItem(ACTIVE_GAME_KEY);
     } catch {
-      /* ignore */
     }
   };
 
@@ -51,7 +50,6 @@ export default function App() {
     try {
       sessionStorage.setItem('sb-user', JSON.stringify(updatedUser));
     } catch {
-      /* ignore */
     }
   }, []);
 
@@ -71,7 +69,6 @@ export default function App() {
     try {
       sessionStorage.setItem(ACTIVE_GAME_KEY, gameId);
     } catch {
-      /* ignore */
     }
     setActiveGameId(gameId);
   }, []);
@@ -81,7 +78,6 @@ export default function App() {
     try {
       sessionStorage.removeItem(ACTIVE_GAME_KEY);
     } catch {
-      /* ignore */
     }
     setActiveGameId(null);
   }, []);

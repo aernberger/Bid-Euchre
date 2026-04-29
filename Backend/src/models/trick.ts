@@ -3,6 +3,10 @@ import { ContractType } from '../services/enums/contractType.js';
 import Card from './card.js';
 import { SuitType } from './enums/suit.js';
 
+/**
+ * determines who wins tricks, and leads next one
+ */
+
 interface PlayedCard {
   playerId: string;
   card: Card;

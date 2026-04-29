@@ -1,6 +1,10 @@
 // src/sockets/socket.ts
 import { io, Socket } from 'socket.io-client';
 
+/**
+ * socket connections to backend and supabase
+ */
+
 let socket: Socket | null = null;
 
 export type LobbyGameSummary = {
@@ -16,9 +20,7 @@ function runWhenConnected(sock: Socket, fn: () => void) {
   else sock.once('connect', fn);
 }
 
-/**
- * Opens (or reuses) the socket connection. Does not join a table — call joinGameRoom from the game screen.
- */
+
 export function connectSocket(token: string, onReady?: (socketId: string) => void) {
   if (socket) {
     if (socket.auth && (socket.auth as { token?: string }).token !== token) {
@@ -69,7 +71,6 @@ export function leaveGameRoom() {
   try {
     getSocket().emit('leaveGame');
   } catch {
-    /* not connected */
   }
 }
 

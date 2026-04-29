@@ -5,6 +5,10 @@ import { RoundResult } from './roundResult.js';
 import Team from './team.js';
 import Trick from './trick.js';
 
+/**
+ * scores each round based on the number of tricks. checks if round is over, and if contract is made.
+ */
+
 export interface PlayCardProgress {
   roundResult: RoundResult | null;
   trickCompleted: boolean;
