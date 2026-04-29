@@ -435,7 +435,6 @@ export class GameController {
       this.game.remapPlayerId(oldId, newId);
     }
 
-    console.log(`[Remap] ${oldId.slice(0, 8)} → ${newId.slice(0, 8)}`);
   }
 
   public restoreHand(socketId: string, cards: Card[]): void {

@@ -29,7 +29,6 @@ export class StatsService {
         console.error(`DB Sync Failed for ${player.name}:`, error.message);
         console.error(`Hint: Check if the function 'update_player_stats' exists in Supabase.`);
       } else {
-        console.log(`DB Sync Success for ${player.name}`);
       }
     });
 

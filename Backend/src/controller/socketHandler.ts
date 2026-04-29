@@ -36,7 +36,6 @@ export default class SocketHandler {
     this.wss = wss;
     this.controller = new GameController();
     this.wss.on('connection', (socket) => {
-      console.log('Socket connected');
       this.registerSocketHandlers(socket);
     });
   }
@@ -87,7 +86,6 @@ export default class SocketHandler {
     if (existingSocketId && existingSocketId !== socketId) {
       const oldSocket = this.wss.sockets.sockets.get(existingSocketId);
       if (oldSocket) {
-        console.log(`Kicking old session for user ${supabaseId}`);
         oldSocket.emit('errorMessage', 'You have been logged in from another tab.');
         oldSocket.disconnect(true);
       }
@@ -139,7 +137,6 @@ export default class SocketHandler {
   }
 
   disconnect(socket: Socket) {
-    console.log('Socket disconnected:', socket.id);
 
     for (const [uId, sId] of this.userToSocket.entries()) {
       if (sId === socket.id) {
@@ -159,9 +156,6 @@ export default class SocketHandler {
             p_game_id: gameId,
             p_user_id: player.supabaseId,
             p_connected: false,
-          })
-          .then(() => {
-            console.log(`[DB] Marked ${player.name} disconnected in game ${gameId}`);
           });
       }
 
@@ -215,9 +209,6 @@ export default class SocketHandler {
       this.games.set(gameId, controller);
 
       const player = new Player(socket.id, data?.name || 'Player', data.supabaseId || '');
-      console.log(
-        `[Table Create] Player ${player.name} initialized with DB ID: ${player.supabaseId}`,
-      );
 
       const response = controller.addPlayer(player);
 
@@ -242,8 +233,6 @@ export default class SocketHandler {
 
           if (playerError) {
             console.error('[DB] Failed to insert game creator:', playerError.message);
-          } else {
-            console.log(`[DB] Game ${gameId} and creator persisted`);
           }
         }
       }
@@ -267,165 +256,185 @@ export default class SocketHandler {
     }
   }
 
-  async onJoinGame(socket: Socket, data: PlayerJoinData) {
-    try {
-      if (data.supabaseId) this.enforceSingleSession(data.supabaseId, socket.id);
+async onJoinGame(socket: Socket, data: PlayerJoinData) {
+    if (data.supabaseId) this.enforceSingleSession(data.supabaseId, socket.id);
 
-      const gameId = data?.gameId;
-      if (!gameId || typeof gameId !== 'string') {
-        socket.emit('errorMessage', 'Select a game to join.');
+    const gameId = data?.gameId;
+    if (!gameId || typeof gameId !== "string") {
+        socket.emit("errorMessage", "Select a game to join.");
         return;
-      }
-
-      const controller = this.games.get(gameId);
-      if (!controller) {
-        socket.emit('errorMessage', 'That table no longer exists.');
-        return;
-      }
-
-      const prev = this.socketToGame.get(socket.id);
-      if (prev && prev !== gameId) this.detachSocketFromCurrentGame(socket, true);
-
-      const existingPlayer = controller.getPlayers().find((p) => p.supabaseId === data.supabaseId);
-
-      let response: Record<string, unknown>;
-
-      if (existingPlayer) {
-        const oldSocketId = existingPlayer.id;
-        existingPlayer.id = socket.id;
-        this.socketToGame.delete(oldSocketId);
-        controller.remapPlayerSocketId(oldSocketId, socket.id);
-
-        if (data.supabaseId) {
-          supabase
-            .rpc('set_player_connection', {
-              p_game_id: gameId,
-              p_user_id: data.supabaseId,
-              p_connected: true,
-            })
-            .then(({ error }) => {
-              if (error) console.error('[DB] set_player_connection failed:', error.message);
-            });
-        }
-
-        response = {
-          type: 'PLAYER_RECONNECTED',
-          players: controller.getPlayers().map((p) => ({ id: p.id, name: p.name })),
-        };
-      } else {
-        if (controller.getPhase() !== GamePhase.WAITING) {
-          socket.emit('errorMessage', 'This game has already started.');
-          return;
-        }
-
-        const player = new Player(socket.id, data?.name || 'Player', data.supabaseId || '');
-        response = controller.addPlayer(player);
-        console.log(`[Join] Player ${data.supabaseId} joined. Response type: ${response.type}`);
-
-        socket.leave(lobbyRoom);
-        socket.join(gameRoomName(gameId));
-        this.socketToGame.set(socket.id, gameId);
-        this.emitGameUpdate(gameId, response);
-        this.broadcastLobby();
-
-        const hand = controller.getPlayerHand(socket.id);
-        const playableCards = controller.getPlayableCards(socket.id);
-        socket.emit('yourHand', { cards: hand, playableCards: playableCards ?? [] });
-        console.log(`[Hand] Sent ${hand.length} cards to ${data.supabaseId ?? socket.id}`);
-
-        if (data.supabaseId) {
-          const seatPosition = controller.getPlayers().length - 1;
-          const teamNumber = seatPosition % 2 === 0 ? 1 : 2;
-          const { error } = await supabase.from('game_players').upsert(
-            {
-              game_id: gameId,
-              user_id: data.supabaseId,
-              team_number: teamNumber,
-              seat_position: seatPosition,
-              is_connected: true,
-            },
-            { onConflict: 'game_id,user_id' },
-          );
-          if (error) console.error('[DB] Failed to upsert game_player:', error.message);
-        }
-
-        if (response.type === 'GAME_INITIALIZED') {
-          try {
-            await supabase.from('games').update({ phase: 'BIDDING' }).eq('id', gameId);
-
-            const { data: roundRow, error: roundError } = await supabase
-              .from('rounds')
-              .insert({
-                game_id: gameId,
-                round_number: controller.getCurrentRoundNumber(),
-                phase: 'BIDDING',
-                turn_order: controller.getPlayers().map((p) => p.supabaseId),
-                team_trick_counts: { '1': 0, '2': 0 },
-              })
-              .select()
-              .single();
-
-            if (roundError) {
-              console.error('[DB] Failed to insert round:', roundError.message);
-            } else if (roundRow) {
-              controller.currentRoundDbId = roundRow.id;
-              console.log(`[DB] Round ${roundRow.id} created. currentRoundDbId set.`);
-
-              const hands = controller.getHandsForPersistence();
-              console.log(
-                `[DB] Persisting ${hands.length} hands. Counts: ${hands.map((h) => `${h.supabaseId?.slice(0, 8)}:${h.cards.length}`).join(', ')}`,
-              );
-              for (const { supabaseId, cards } of hands) {
-                const { error: handError } = await supabase
-                  .from('player_hands')
-                  .upsert(
-                    { round_id: roundRow.id, user_id: supabaseId, cards },
-                    { onConflict: 'round_id,user_id' },
-                  );
-                if (handError) console.error('[DB] Failed to upsert hand:', handError.message);
-              }
-              console.log(`[DB] All hands persisted for round ${roundRow.id}`);
-            }
-          } catch (dbErr: any) {
-            console.error('[DB] Hand persistence failed:', dbErr.message);
-          }
-        }
-
-        return;
-      }
-
-      socket.leave(lobbyRoom);
-      socket.join(gameRoomName(gameId));
-      this.socketToGame.set(socket.id, gameId);
-      this.emitGameUpdate(gameId, response);
-      this.broadcastLobby();
-
-      let hand = controller.getPlayerHand(socket.id);
-      if (hand.length === 0 && data.supabaseId && controller.currentRoundDbId) {
-        console.log(`[Reconnect] Fetching hand from DB for ${data.supabaseId}`);
-        const { data: handData, error } = await supabase
-          .from('player_hands')
-          .select('cards')
-          .eq('round_id', controller.currentRoundDbId)
-          .eq('user_id', data.supabaseId)
-          .single();
-
-        if (error) {
-          console.error('[DB] Failed to fetch hand:', error.message);
-        } else if (handData?.cards?.length > 0) {
-          controller.restoreHand(socket.id, handData.cards);
-          hand = controller.getPlayerHand(socket.id);
-          console.log(`[Reconnect] Restored ${hand.length} cards from DB`);
-        }
-      }
-
-      const playableCards = controller.getPlayableCards(socket.id);
-      socket.emit('yourHand', { cards: hand, playableCards: playableCards ?? [] });
-      console.log(`[Hand] Sent ${hand.length} cards to ${data.supabaseId ?? socket.id}`);
-    } catch (error: any) {
-      socket.emit('errorMessage', error.message);
     }
-  }
+
+    const controller = this.games.get(gameId);
+    if (!controller) {
+        socket.emit("errorMessage", "That table no longer exists.");
+        return;
+    }
+
+    const prev = this.socketToGame.get(socket.id);
+    if (prev && prev !== gameId) this.detachSocketFromCurrentGame(socket, true);
+
+    const existingPlayer = controller.getPlayers()
+        .find(p => p.supabaseId === data.supabaseId);
+
+    try {
+        if (existingPlayer) {
+            await this.handleReconnect(socket, data, gameId, controller, existingPlayer);
+        } else {
+            await this.handleNewJoin(socket, data, gameId, controller);
+        }
+    } catch (error: any) {
+        socket.emit("errorMessage", error.message);
+    }
+}
+
+private async handleReconnect(
+    socket: Socket,
+    data: PlayerJoinData,
+    gameId: string,
+    controller: GameController,
+    existingPlayer: Player
+) {
+    const oldSocketId = existingPlayer.id;
+    existingPlayer.id = socket.id;
+    this.socketToGame.delete(oldSocketId);
+    controller.remapPlayerSocketId(oldSocketId, socket.id);
+
+    if (data.supabaseId) {
+        supabase.rpc("set_player_connection", {
+            p_game_id: gameId,
+            p_user_id: data.supabaseId,
+            p_connected: true,
+        }).then(({ error }) => {
+            if (error) console.error("[DB] set_player_connection failed:", error.message);
+        });
+    }
+
+    socket.leave(lobbyRoom);
+    socket.join(gameRoomName(gameId));
+    this.socketToGame.set(socket.id, gameId);
+
+    const response = {
+        type: "PLAYER_RECONNECTED",
+        players: controller.getPlayers().map(p => ({ id: p.id, name: p.name })),
+    };
+
+    this.emitGameUpdate(gameId, response);
+    this.broadcastLobby();
+
+    this.wss.to(gameRoomName(gameId)).emit("playerReconnected", {
+        ...controller.getPublicState(),
+        type: "PLAYER_RECONNECTED",
+        reconnectedPlayerId: socket.id,
+    });
+
+    await this.deliverHand(socket, data.supabaseId ?? null, controller);
+}
+
+private async handleNewJoin(
+    socket: Socket,
+    data: PlayerJoinData,
+    gameId: string,
+    controller: GameController
+) {
+    if (controller.getPhase() !== GamePhase.WAITING) {
+        socket.emit("errorMessage", "This game has already started.");
+        return;
+    }
+
+    const player = new Player(socket.id, data?.name || "Player", data.supabaseId || "");
+    const response = controller.addPlayer(player);
+
+    socket.leave(lobbyRoom);
+    socket.join(gameRoomName(gameId));
+    this.socketToGame.set(socket.id, gameId);
+    this.emitGameUpdate(gameId, response);
+    this.broadcastLobby();
+
+    const hand = controller.getPlayerHand(socket.id);
+    const playableCards = controller.getPlayableCards(socket.id);
+    socket.emit("yourHand", { cards: hand, playableCards: playableCards ?? [] });
+
+    if (data.supabaseId) {
+        await this.persistNewPlayer(data.supabaseId, gameId, controller);
+    }
+
+    if (response.type === "GAME_INITIALIZED") {
+        await this.persistInitialRoundAndHands(gameId, controller);
+    }
+}
+
+private async persistNewPlayer(
+    supabaseId: string,
+    gameId: string,
+    controller: GameController
+) {
+    const seatPosition = controller.getPlayers().length - 1;
+    const teamNumber = seatPosition % 2 === 0 ? 1 : 2;
+    await supabase.from("game_players").upsert({
+        game_id: gameId,
+        user_id: supabaseId,
+        team_number: teamNumber,
+        seat_position: seatPosition,
+        is_connected: true,
+    }, { onConflict: "game_id,user_id" });
+}
+
+private async persistInitialRoundAndHands(
+    gameId: string,
+    controller: GameController
+) {
+    await supabase.from("games").update({ phase: "BIDDING" }).eq("id", gameId);
+
+    const { data: roundRow, error: roundError } = await supabase
+        .from("rounds")
+        .insert({
+            game_id: gameId,
+            round_number: controller.getCurrentRoundNumber(),
+            phase: "BIDDING",
+            turn_order: controller.getPlayers().map(p => p.supabaseId),
+            team_trick_counts: { "1": 0, "2": 0 },
+        })
+        .select()
+        .single();
+
+    if (roundError || !roundRow) return;
+
+    controller.currentRoundDbId = roundRow.id;
+
+    const hands = controller.getHandsForPersistence();
+    for (const { supabaseId, cards } of hands) {
+        await supabase.from("player_hands").upsert(
+            { round_id: roundRow.id, user_id: supabaseId, cards },
+            { onConflict: "round_id,user_id" }
+        );
+    }
+}
+
+private async deliverHand(
+    socket: Socket,
+    supabaseId: string | null,
+    controller: GameController
+) {
+    let hand = controller.getPlayerHand(socket.id);
+
+    if (hand.length === 0 && supabaseId && controller.currentRoundDbId) {
+        const { data: handData } = await supabase
+            .from("player_hands")
+            .select("cards")
+            .eq("round_id", controller.currentRoundDbId)
+            .eq("user_id", supabaseId)
+            .single();
+
+        if (handData?.cards?.length > 0) {
+            controller.restoreHand(socket.id, handData?.cards);
+            hand = controller.getPlayerHand(socket.id);
+        }
+    }
+
+    const playableCards = controller.getPlayableCards(socket.id);
+    socket.emit("yourHand", { cards: hand, playableCards: playableCards ?? [] });
+}
 
   onLeaveGame(socket: Socket) {
     const gameId = this.socketToGame.get(socket.id);
@@ -460,7 +469,6 @@ export default class SocketHandler {
         .delete()
         .eq('game_id', gameId)
         .eq('user_id', player.supabaseId)
-        .then(() => console.log(`[DB] Removed ${player.name} from game ${gameId}`));
     }
 
     this.detachSocketFromCurrentGame(socket, true);
@@ -498,8 +506,6 @@ export default class SocketHandler {
 
           if (error) {
             console.error('[DB] Failed to update round to PLAYING:', error.message);
-          } else {
-            console.log(`[DB] Round ${controller.currentRoundDbId} updated to PLAYING`);
           }
         } else {
           console.warn('[DB] No currentRoundDbId — was GAME_INITIALIZED returned by addPlayer?');
@@ -571,7 +577,6 @@ export default class SocketHandler {
                   { onConflict: 'round_id,user_id' },
                 );
             }
-            console.log(`[DB] New round ${newRoundRow.id} and hands persisted`);
           }
         }
 
